@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "957169519273",
+    "project_id": "fir-tutorial-826a8",
+    "storage_bucket": "fir-tutorial-826a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:957169519273:android:b2d9f9911c5b29ec4df7b8",
+        "android_client_info": {
+          "package_name": "com.example.cgc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "957169519273-eg0agi0nrgr9us5pa8eibc1q6vjoufq4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cgc",
+            "certificate_hash": "62344018eab4c794de1196a7fb804eb751bd43f5"
+          }
+        },
+        {
+          "client_id": "957169519273-710rul0r04dflsjk8to22u80iki82uon.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfbJRXxQpokpQ2u-qVVwxMn6ec88ToPeU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "957169519273-710rul0r04dflsjk8to22u80iki82uon.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "957169519273-7hvs6f3rs32sot13ubkign2vi224gs78.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sahaaya"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

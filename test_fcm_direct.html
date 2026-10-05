@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FCM Direct Test - Your Token</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .button { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 15px 25px; 
+            margin: 10px 5px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .button:hover { 
+            background: #45a049; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .info { 
+            background: rgba(255,255,255,0.1); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 15px 0; 
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .token { 
+            background: rgba(0,0,0,0.3); 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            word-break: break-all;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .warning { background: rgba(255, 152, 0, 0.3); border: 1px solid #ff9800; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 FCM Direct Test - Your Token</h1>
+        
+        <div class="info">
+            <h3>🔑 Your FCM Token:</h3>
+            <div class="token">BItyI84YBWgMtjlgGodn0aWjTc4z3Un-XjoPTp6_dQbTvBKyhNGPkyEJaPGEKC5FKdVrqGbkJXItO8zbAYu5Azc</div>
+        </div>
+
+        <div class="info">
+            <h3>⚙️ Server Key Status:</h3>
+            <div id="serverKeyStatus" class="status warning">
+                ⚠️ Server Key: Not configured
+            </div>
+            <p><strong>To get your server key:</strong></p>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com/" target="_blank" style="color: #4CAF50;">Firebase Console</a></li>
+                <li>Select your project</li>
+                <li>Go to Project Settings → Cloud Messaging</li>
+                <li>Copy the "Server Key"</li>
+                <li>Update the code in <code>lib/services/fcm_test_service.dart</code></li>
+            </ol>
+        </div>
+
+        <div class="info">
+            <h3>🧪 Test FCM Notifications:</h3>
+            <p>Click these buttons to test FCM notifications to your device:</p>
+            
+            <div class="grid">
+                <button class="button" onclick="testFloodAlert()">
+                    🌊 Test Flood Alert
+                </button>
+                
+                <button class="button" onclick="testEvacuationAlert()">
+                    🚨 Test Evacuation Alert
+                </button>
+                
+                <button class="button" onclick="testWeatherWarning()">
+                    ⚠️ Test Weather Warning
+                </button>
+                
+                <button class="button" onclick="testCustomAlert()">
+                    🎯 Test Custom Alert
+                </button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>📱 What You'll See:</h3>
+            <ul>
+                <li><strong>Local Notifications:</strong> Appear in your Flutter app immediately</li>
+                <li><strong>FCM Notifications:</strong> Sent to your device via Firebase (if server key configured)</li>
+                <li><strong>Real-time Testing:</strong> Test with your actual FCM token</li>
+                <li><strong>Permission Handling:</strong> App requests notification permissions on startup</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h3>🔧 Setup Instructions:</h3>
+            <ol>
+                <li><strong>Get Server Key:</strong> From Firebase Console → Project Settings → Cloud Messaging</li>
+                <li><strong>Update Code:</strong> Replace <code>YOUR_FIREBASE_SERVER_KEY_HERE</code> in <code>fcm_test_service.dart</code></li>
+                <li><strong>Run App:</strong> Flutter app will request notification permissions</li>
+                <li><strong>Test:</strong> Use the test buttons in your Flutter app</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Your FCM token
+        const FCM_TOKEN = 'BItyI84YBWgMtjlgGodn0aWjTc4z3Un-XjoPTp6_dQbTvBKyhNGPkyEJaPGEKC5FKdVrqGbkJXItO8zbAYu5Azc';
+        
+        // You need to replace this with your actual Firebase Server Key
+        const SERVER_KEY = 'YOUR_FIREBASE_SERVER_KEY_HERE';
+        
+        const FCM_URL = 'https://fcm.googleapis.com/fcm/send';
+
+        // Update status display
+        function updateStatus() {
+            const statusDiv = document.getElementById('serverKeyStatus');
+            if (SERVER_KEY === 'YOUR_FIREBASE_SERVER_KEY_HERE') {
+                statusDiv.className = 'status warning';
+                statusDiv.innerHTML = '⚠️ Server Key: Not configured';
+            } else {
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ Server Key: Configured';
+            }
+        }
+
+        async function sendFCMNotification(title, body, data) {
+            if (SERVER_KEY === 'YOUR_FIREBASE_SERVER_KEY_HERE') {
+                alert('⚠️ Please configure your Firebase Server Key first!\n\nGo to Firebase Console → Project Settings → Cloud Messaging → Copy Server Key');
+                return false;
+            }
+
+            try {
+                const response = await fetch(FCM_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `key=${SERVER_KEY}`
+                    },
+                    body: JSON.stringify({
+                        to: FCM_TOKEN,
+                        notification: {
+                            title: title,
+                            body: body,
+                            icon: 'ic_launcher',
+                            sound: 'default'
+                        },
+                        data: data,
+                        priority: 'high'
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ FCM notification sent successfully!\n\nCheck your device for the notification.');
+                    return true;
+                } else {
+                    const errorText = await response.text();
+                    alert(`❌ FCM failed: ${response.status}\n\n${errorText}`);
+                    return false;
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        function testFloodAlert() {
+            sendFCMNotification(
+                '🌊 Flood Alert - Amritsar Central',
+                'Severity: HIGH | Water level rising rapidly. Evacuation recommended.',
+                {
+                    type: 'flood_alert',
+                    location: 'Amritsar Central',
+                    severity: 'HIGH',
+                    waterLevel: '2.5m',
+                    status: 'Evacuation Recommended'
+                }
+            );
+        }
+
+        function testEvacuationAlert() {
+            sendFCMNotification(
+                '🚨 EVACUATION ALERT',
+                'Immediate evacuation required in Amritsar Central\nEvacuation Center: Guru Nanak Dev University',
+                {
+                    type: 'evacuation',
+                    location: 'Amritsar Central',
+                    evacuationCenter: 'Guru Nanak Dev University'
+                }
+            );
+        }
+
+        function testWeatherWarning() {
+            sendFCMNotification(
+                '⚠️ Weather Warning - Heavy Rainfall',
+                'Location: Amritsar District | Duration: Next 6 hours',
+                {
+                    type: 'weather_warning',
+                    warningType: 'Heavy Rainfall',
+                    location: 'Amritsar District',
+                    duration: 'Next 6 hours'
+                }
+            );
+        }
+
+        function testCustomAlert() {
+            sendFCMNotification(
+                '🎯 Custom Flood Alert - Railway Station',
+                'Severity: MEDIUM | Water Level: 1.2m | Status: Stay Alert',
+                {
+                    type: 'flood_alert',
+                    location: 'Railway Station',
+                    severity: 'MEDIUM',
+                    waterLevel: '1.2m',
+                    status: 'Stay Alert'
+                }
+            );
+        }
+
+        // Initialize status on page load
+        updateStatus();
+    </script>
+</body>
+</html>

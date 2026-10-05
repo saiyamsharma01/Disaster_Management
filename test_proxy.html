@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FCM Proxy Test - No CORS Issues</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .button { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 15px 25px; 
+            margin: 10px 5px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .button:hover { 
+            background: #45a049; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .info { 
+            background: rgba(255,255,255,0.1); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 15px 0; 
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .warning { background: rgba(255, 152, 0, 0.3); border: 1px solid #ff9800; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 FCM Proxy Test - No CORS Issues!</h1>
+        
+        <div class="info">
+            <h3>🔧 Proxy Server Status:</h3>
+            <div id="proxyStatus" class="status warning">
+                ⚠️ Checking proxy server...
+            </div>
+            <p><strong>Make sure to run:</strong> <code>npm start</code> in your terminal</p>
+        </div>
+
+        <div class="info">
+            <h3>🧪 Test FCM Notifications (No CORS!):</h3>
+            <p>Click these buttons to test FCM notifications via proxy server:</p>
+            
+            <div class="grid">
+                <button class="button" onclick="testFloodAlert()">
+                    🌊 Test Flood Alert
+                </button>
+                
+                <button class="button" onclick="testEvacuationAlert()">
+                    🚨 Test Evacuation Alert
+                </button>
+                
+                <button class="button" onclick="testWeatherWarning()">
+                    ⚠️ Test Weather Warning
+                </button>
+                
+                <button class="button" onclick="testCustomAlert()">
+                    🎯 Test Custom Alert
+                </button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>📱 What You'll See:</h3>
+            <ul>
+                <li><strong>No CORS Errors:</strong> Proxy server handles FCM API calls</li>
+                <li><strong>Real Notifications:</strong> Sent to your device via Firebase</li>
+                <li><strong>Your Token:</strong> BItyI84YBWgMtjlgGodn0aWjTc4z3Un-XjoPTp6_dQbTvBKyhNGPkyEJaPGEKC5FKdVrqGbkJXItO8zbAYu5Azc</li>
+                <li><strong>Server Key:</strong> d53d7a01d0c60278fd24ba8803707448c8cb45ad</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h3>🔧 Setup Instructions:</h3>
+            <ol>
+                <li><strong>Start Proxy:</strong> Run <code>npm start</code> in terminal</li>
+                <li><strong>Check Status:</strong> Green status above means proxy is running</li>
+                <li><strong>Test Notifications:</strong> Click buttons above</li>
+                <li><strong>Check Device:</strong> Notifications appear on your device!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const PROXY_URL = 'http://localhost:3001';
+
+        // Check proxy server status
+        async function checkProxyStatus() {
+            try {
+                const response = await fetch(PROXY_URL);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('proxyStatus');
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ Proxy server running - Ready to send notifications!';
+            } catch (error) {
+                const statusDiv = document.getElementById('proxyStatus');
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Proxy server not running - Run: npm start';
+            }
+        }
+
+        async function sendNotification(endpoint, title, body) {
+            try {
+                const response = await fetch(`${PROXY_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ ${title} sent successfully!\n\nCheck your device for the notification.`);
+                } else {
+                    alert(`❌ Failed to send ${title}:\n\n${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}\n\nMake sure proxy server is running: npm start`);
+            }
+        }
+
+        function testFloodAlert() {
+            sendNotification('/test-flood-alert', 'Flood Alert', '🌊 Flood Alert - Amritsar Central');
+        }
+
+        function testEvacuationAlert() {
+            sendNotification('/test-evacuation-alert', 'Evacuation Alert', '🚨 EVACUATION ALERT');
+        }
+
+        function testWeatherWarning() {
+            sendNotification('/test-weather-warning', 'Weather Warning', '⚠️ Weather Warning - Heavy Rainfall');
+        }
+
+        function testCustomAlert() {
+            sendNotification('/send-notification', 'Custom Alert', '🎯 Custom Flood Alert - Railway Station');
+        }
+
+        // Check proxy status on page load
+        checkProxyStatus();
+        
+        // Check status every 5 seconds
+        setInterval(checkProxyStatus, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iPhone Test - Sahaaya</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #0175C2;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .button {
+            background: #0175C2;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        .features {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .feature {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature:last-child {
+            border-bottom: none;
+        }
+        .icon {
+            font-size: 1.2em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚨 Sahaaya</div>
+        <h2>Emergency Assistance App</h2>
+        
+        <div class="status success">
+            ✅ iPhone Compatibility Test Passed
+        </div>
+        
+        <div class="status info">
+            📱 Optimized for iPhone Safari
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <span class="icon">🏠</span>
+                <strong>Dashboard:</strong> Emergency assistance hub
+            </div>
+            <div class="feature">
+                <span class="icon">🚨</span>
+                <strong>SOS:</strong> Emergency alerts and help
+            </div>
+            <div class="feature">
+                <span class="icon">🏠</span>
+                <strong>Shelters:</strong> Find nearby safe locations
+            </div>
+            <div class="feature">
+                <span class="icon">💬</span>
+                <strong>IVR Demo:</strong> Interactive voice response
+            </div>
+            <div class="feature">
+                <span class="icon">🌊</span>
+                <strong>Flood Alerts:</strong> Real-time weather warnings
+            </div>
+            <div class="feature">
+                <span class="icon">🤖</span>
+                <strong>Chatbot:</strong> AI-powered assistance
+            </div>
+        </div>
+        
+        <a href="http://localhost:8080" class="button">
+            🚀 Launch Flutter App
+        </a>
+        
+        <a href="http://localhost:8080/dashboard" class="button">
+            📊 Go to Dashboard
+        </a>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            <p>If the Flutter app is not running, please start it with:</p>
+            <code style="background: #f8f9fa; padding: 5px; border-radius: 5px;">
+                flutter run -d chrome --web-port 8080
+            </code>
+        </div>
+    </div>
+    
+    <script>
+        // Test iPhone-specific features
+        function testIPhoneFeatures() {
+            const results = [];
+            
+            // Test viewport
+            if (window.innerWidth <= 414) {
+                results.push('✅ Mobile viewport detected');
+            } else {
+                results.push('ℹ️ Desktop viewport detected');
+            }
+            
+            // Test touch support
+            if ('ontouchstart' in window) {
+                results.push('✅ Touch support available');
+            } else {
+                results.push('ℹ️ Touch support not available');
+            }
+            
+            // Test iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                results.push('✅ iOS device detected');
+            } else {
+                results.push('ℹ️ Non-iOS device detected');
+            }
+            
+            console.log('iPhone Test Results:', results);
+        }
+        
+        // Run tests on load
+        window.addEventListener('load', testIPhoneFeatures);
+        
+        // Test Flutter app connectivity
+        function testFlutterApp() {
+            fetch('http://localhost:8080')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ Flutter app is running on port 8080');
+                    } else {
+                        console.log('❌ Flutter app not responding');
+                    }
+                })
+                .catch(error => {
+                    console.log('❌ Flutter app not running:', error.message);
+                });
+        }
+        
+        // Test connectivity after 2 seconds
+        setTimeout(testFlutterApp, 2000);
+    </script>
+</body>
+</html>

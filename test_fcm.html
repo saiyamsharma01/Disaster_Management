@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FCM Test - Flood Alerts</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .button { 
+            background: #4CAF50; color: white; 
+            padding: 15px 20px; margin: 10px 5px; 
+            border: none; border-radius: 5px; 
+            cursor: pointer; font-size: 16px;
+        }
+        .button:hover { background: #45a049; }
+        .info { background: #f0f0f0; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .token { background: #e8f5e8; padding: 10px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 FCM Flood Alert Test</h1>
+        
+        <div class="info">
+            <h3>Your FCM Token:</h3>
+            <div class="token">BItyI84YBWgMtjlgGodn0aWjTc4z3Un-XjoPTp6_dQbTvBKyhNGPkyEJaPGEKC5FKdVrqGbkJXItO8zbAYu5Azc</div>
+        </div>
+
+        <div class="info">
+            <h3>Test Notifications:</h3>
+            <p>Click these buttons to test FCM notifications to your device:</p>
+            
+            <button class="button" onclick="testFloodAlert()">
+                🌊 Test Flood Alert
+            </button>
+            
+            <button class="button" onclick="testEvacuationAlert()">
+                🚨 Test Evacuation Alert
+            </button>
+            
+            <button class="button" onclick="testWeatherWarning()">
+                ⚠️ Test Weather Warning
+            </button>
+        </div>
+
+        <div class="info">
+            <h3>Setup Instructions:</h3>
+            <ol>
+                <li>Get your Firebase Server Key from Firebase Console</li>
+                <li>Update the code in <code>lib/services/fcm_test_service.dart</code></li>
+                <li>Replace <code>YOUR_FIREBASE_SERVER_KEY_HERE</code> with your actual key</li>
+                <li>Run your Flutter app and test the FCM buttons</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Your FCM token
+        const FCM_TOKEN = 'BItyI84YBWgMtjlgGodn0aWjTc4z3Un-XjoPTp6_dQbTvBKyhNGPkyEJaPGEKC5FKdVrqGbkJXItO8zbAYu5Azc';
+        
+        // You need to replace this with your actual Firebase Server Key
+        const SERVER_KEY = 'YOUR_FIREBASE_SERVER_KEY_HERE';
+        
+        const FCM_URL = 'https://fcm.googleapis.com/fcm/send';
+
+        async function sendFCMNotification(title, body, data) {
+            if (SERVER_KEY === 'YOUR_FIREBASE_SERVER_KEY_HERE') {
+                alert('Please set your Firebase Server Key first!');
+                return;
+            }
+
+            try {
+                const response = await fetch(FCM_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `key=${SERVER_KEY}`
+                    },
+                    body: JSON.stringify({
+                        to: FCM_TOKEN,
+                        notification: {
+                            title: title,
+                            body: body,
+                            icon: 'ic_launcher',
+                            sound: 'default'
+                        },
+                        data: data,
+                        priority: 'high'
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Notification sent successfully!');
+                } else {
+                    alert('❌ Failed to send notification: ' + response.status);
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        function testFloodAlert() {
+            sendFCMNotification(
+                '🌊 Flood Alert - Amritsar Central',
+                'Severity: HIGH | Water level rising rapidly. Evacuation recommended.',
+                {
+                    type: 'flood_alert',
+                    location: 'Amritsar Central',
+                    severity: 'HIGH'
+                }
+            );
+        }
+
+        function testEvacuationAlert() {
+            sendFCMNotification(
+                '🚨 EVACUATION ALERT',
+                'Immediate evacuation required in Amritsar Central\nEvacuation Center: Guru Nanak Dev University',
+                {
+                    type: 'evacuation',
+                    location: 'Amritsar Central',
+                    evacuationCenter: 'Guru Nanak Dev University'
+                }
+            );
+        }
+
+        function testWeatherWarning() {
+            sendFCMNotification(
+                '⚠️ Weather Warning - Heavy Rainfall',
+                'Location: Amritsar District | Duration: Next 6 hours',
+                {
+                    type: 'weather_warning',
+                    warningType: 'Heavy Rainfall',
+                    location: 'Amritsar District'
+                }
+            );
+        }
+    </script>
+</body>
+</html>

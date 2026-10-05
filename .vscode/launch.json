@@ -1,0 +1,38 @@
+{
+  "configurations": [
+    {
+      "name": "Flutter (Mobile/Desktop)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define",
+        "ACCESS_TOKEN=YOUR_MAPBOX_ACCESS_TOKEN"
+      ]
+    },
+    {
+      "name": "Flutter (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "chrome",
+        "--dart-define",
+        "ACCESS_TOKEN=YOUR_MAPBOX_ACCESS_TOKEN"
+      ]
+    },
+    {
+      "name": "Flutter (Edge)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "edge",
+        "--dart-define",
+        "ACCESS_TOKEN=YOUR_MAPBOX_ACCESS_TOKEN"
+      ]
+    }
+  ]
+}
