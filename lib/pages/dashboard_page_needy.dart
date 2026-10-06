@@ -16,15 +16,33 @@ class DashboardPageNeedy extends StatelessWidget {
     return Scaffold(
       // --- UI Enhancement: AppBar and Greeting remain as last update ---
       appBar: AppBar(
-        leadingWidth: 200,
+        leadingWidth: 230,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-          child: Text(
-            AppLocalizations.of(context)!.dashboard,
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          padding: const EdgeInsets.only(left: 16.0, top: 4.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/sahaaya_logo.png',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  AppLocalizations.of(context)!.dashboard,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
         actions: [

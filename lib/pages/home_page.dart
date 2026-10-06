@@ -12,7 +12,13 @@ class HomePage extends StatelessWidget {
     final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        leading: const Icon(Icons.air, size: 25.0),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset('assets/images/sahaaya_logo.png'),
+          ),
+        ),
         title: Text(
           t.appTitle,
           style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
