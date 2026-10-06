@@ -467,7 +467,9 @@ class _NeedyViewPageState extends State<NeedyViewPage>
             const SizedBox(height: 10),
 
             // Urgency Chips
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: ['Critical', 'High', 'Medium', 'Normal'].map((level) {
                 final isSelected = _urgencyLevel == level;
                 Color chipColor;
@@ -481,25 +483,22 @@ class _NeedyViewPageState extends State<NeedyViewPage>
                   chipColor = Colors.blue;
                 }
 
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(level),
-                    selected: isSelected,
-                    selectedColor: chipColor.withValues(alpha: 0.2),
-                    backgroundColor: Colors.grey.shade100,
-                    labelStyle: TextStyle(
-                      color: isSelected ? chipColor : Colors.black87,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                    side: BorderSide(
-                      color: isSelected ? chipColor : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    onSelected: (val) {
-                      if (val) setState(() => _urgencyLevel = level);
-                    },
+                return ChoiceChip(
+                  label: Text(level),
+                  selected: isSelected,
+                  selectedColor: chipColor.withValues(alpha: 0.2),
+                  backgroundColor: Colors.grey.shade100,
+                  labelStyle: TextStyle(
+                    color: isSelected ? chipColor : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
+                  side: BorderSide(
+                    color: isSelected ? chipColor : Colors.grey.shade300,
+                    width: isSelected ? 2 : 1,
+                  ),
+                  onSelected: (val) {
+                    if (val) setState(() => _urgencyLevel = level);
+                  },
                 );
               }).toList(),
             ),
