@@ -58,14 +58,14 @@ class CreditService {
       }
       
       if (creditAmount > 0) {
-        // Update user's credit balance
+        // Update user's credit balance safely
         await FirebaseFirestore.instance
             .collection(_creditsCollection)
             .doc(userId)
-            .update({
+            .set({
           'balance': FieldValue.increment(creditAmount),
           'lastUpdated': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
         
         // Record transaction
         await FirebaseFirestore.instance
