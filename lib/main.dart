@@ -43,13 +43,20 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    debugPrint('✅ Firebase initialized successfully with ${DefaultFirebaseOptions.currentPlatform.projectId}');
+    
     await LocaleController.initialize();
     
-    // Initialize notification service
-    await NotificationService().initialize();
+    // Initialize notification service safely
+    try {
+      await NotificationService().initialize();
+    } catch (notifErr) {
+      debugPrint('ℹ️ NotificationService initialization info: $notifErr');
+    }
     
     appRouter = createRouter();
   } catch (e) {
+    debugPrint('⚠️ Firebase.initializeApp error: $e');
     // Fall back to a minimal router so Web doesn't render a blank page
     await LocaleController.initialize();
     appRouter = createRouterWithoutAuth();

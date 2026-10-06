@@ -47,7 +47,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     if (mounted) {
-      setState(() => _loading = true);
+      setState(() {
+        _loading = true;
+        _errorMessage = null;
+      });
     }
     try {
       final userCredential = await FirebaseAuth.instance
@@ -56,12 +59,23 @@ class _LoginPageState extends State<LoginPage> {
             password: _passwordController.text.trim(),
           );
 
-      if (userCredential.user != null && mounted) {
-        context.go('/dashboard');
+      if (userCredential.user != null) {
+        // Sync user to Firestore
+        await AuthService.instance.saveUserToFirestore(userCredential.user);
+        if (mounted) {
+          context.go('/dashboard');
+        }
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException on Login: ${e.code} - ${e.message}');
       if (mounted) {
         setState(() => _errorMessage = _getFirebaseError(e));
+      }
+    } catch (e) {
+      debugPrint('General Login Error: $e');
+      if (mounted) {
+        final t = AppLocalizations.of(context)!;
+        setState(() => _errorMessage = t.loginFailed);
       }
     } finally {
       if (mounted) {
@@ -74,11 +88,14 @@ class _LoginPageState extends State<LoginPage> {
     final t = AppLocalizations.of(context)!;
     switch (e.code) {
       case 'user-not-found':
+      case 'invalid-credential':
         return t.userNotFound;
       case 'wrong-password':
         return t.wrongPassword;
       case 'invalid-email':
         return t.invalidEmail;
+      case 'user-disabled':
+        return 'This account has been disabled.';
       default:
         return e.message ?? t.loginFailed;
     }
@@ -86,16 +103,23 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _signInWithGoogle() async {
     if (mounted) {
-      setState(() => _loading = true);
+      setState(() {
+        _loading = true;
+        _errorMessage = null;
+      });
     }
     try {
-      await AuthService.instance.signInWithGoogle();
-      if (mounted) context.go('/dashboard');
+      final credential = await AuthService.instance.signInWithGoogle();
+      if (credential != null && mounted) {
+        context.go('/dashboard');
+      }
     } on FirebaseAuthException catch (e) {
+      debugPrint('Google Sign-In Auth Error: ${e.code} - ${e.message}');
       if (mounted) {
         setState(() => _errorMessage = _getFirebaseError(e));
       }
     } catch (e) {
+      debugPrint('Google Sign-In General Error: $e');
       if (mounted) {
         final t = AppLocalizations.of(context)!;
         setState(() => _errorMessage = t.loginFailed);

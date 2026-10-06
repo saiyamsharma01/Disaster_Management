@@ -1,6 +1,3 @@
-// Generated manually from your Firebase Web config.
-// If you later run `flutterfire configure`, it may overwrite this file.
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform, kIsWeb;
@@ -11,34 +8,17 @@ class DefaultFirebaseOptions {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnimplementedError(
-          'Firebase options for Android are not set.\n'
-          'Add android options or run "flutterfire configure" to generate them.',
-        );
+        return android;
       case TargetPlatform.iOS:
-        throw UnimplementedError(
-          'Firebase options for iOS are not set.\n'
-          'Add iOS options or run "flutterfire configure" to generate them.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnimplementedError(
-          'Firebase options for macOS are not set.\n'
-          'Add macOS options or run "flutterfire configure" to generate them.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnimplementedError(
-          'Firebase options for Windows are not set.\n'
-          'Add Windows options or run "flutterfire configure" to generate them.',
-        );
+        return windows;
       case TargetPlatform.linux:
-        throw UnimplementedError(
-          'Firebase options for Linux are not set.\n'
-          'Add Linux options or run "flutterfire configure" to generate them.',
-        );
+        return linux;
       default:
-        throw UnimplementedError(
-          'Unsupported platform for Firebase initialization.',
-        );
+        return web;
     }
   }
 
@@ -50,6 +30,51 @@ class DefaultFirebaseOptions {
     storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
     messagingSenderId: '957169519273',
     appId: '1:957169519273:web:feb013097ae965fe4df7b8',
-    // measurementId can be added here if you have it, e.g.: measurementId: 'G-XXXXXXX',
+  );
+
+  // Android options built from google-services.json
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBfbJRXxQpokpQ2u-qVVwxMn6ec88ToPeU',
+    appId: '1:957169519273:android:b2d9f9911c5b29ec4df7b8',
+    messagingSenderId: '957169519273',
+    projectId: 'fir-tutorial-826a8',
+    storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
+  );
+
+  // iOS options
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCz-gZdsDUlpQohVOWdfy6-1qnQLb9cLj0',
+    appId: '1:957169519273:ios:6c310468fce0d6214df7b8',
+    messagingSenderId: '957169519273',
+    projectId: 'fir-tutorial-826a8',
+    storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
+    iosClientId: '957169519273-7hvs6f3rs32sot13ubkign2vi224gs78.apps.googleusercontent.com',
+    iosBundleId: 'com.example.sahaaya',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCz-gZdsDUlpQohVOWdfy6-1qnQLb9cLj0',
+    appId: '1:957169519273:web:feb013097ae965fe4df7b8',
+    messagingSenderId: '957169519273',
+    projectId: 'fir-tutorial-826a8',
+    storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyCz-gZdsDUlpQohVOWdfy6-1qnQLb9cLj0',
+    appId: '1:957169519273:web:feb013097ae965fe4df7b8',
+    messagingSenderId: '957169519273',
+    projectId: 'fir-tutorial-826a8',
+    authDomain: 'fir-tutorial-826a8.firebaseapp.com',
+    storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
+  );
+
+  static const FirebaseOptions linux = FirebaseOptions(
+    apiKey: 'AIzaSyCz-gZdsDUlpQohVOWdfy6-1qnQLb9cLj0',
+    appId: '1:957169519273:web:feb013097ae965fe4df7b8',
+    messagingSenderId: '957169519273',
+    projectId: 'fir-tutorial-826a8',
+    authDomain: 'fir-tutorial-826a8.firebaseapp.com',
+    storageBucket: 'fir-tutorial-826a8.firebasestorage.app',
   );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahaaya/services/auth_service.dart';
 import 'package:sahaaya/l10n/app_localizations.dart';
@@ -33,35 +34,117 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
+  String _getFirebaseError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'This email is already registered. Please sign in instead.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled in Firebase console.';
+      case 'weak-password':
+        return 'The password provided is too weak. Choose a stronger password.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
+      default:
+        return e.message ?? 'Registration failed. Please try again.';
+    }
+  }
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      // 1. Create user in Firebase Authentication
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-      if (mounted) context.go('/dashboard');
+
+      final user = userCredential.user;
+      if (user != null) {
+        // 2. Update display name in Firebase Auth
+        try {
+          await user.updateDisplayName(username);
+        } catch (nameError) {
+          debugPrint('Failed to update displayName: $nameError');
+        }
+
+        // 3. Store user in Firestore database
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'uid': user.uid,
+            'username': username,
+            'email': email,
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLogin': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+          debugPrint('User saved in Firestore: ${user.uid}');
+        } catch (firestoreError) {
+          debugPrint('Failed to write to Firestore: $firestoreError');
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        context.go('/dashboard');
+      }
     } on FirebaseAuthException catch (e) {
-      setState(() => _errorMessage = e.message);
-    } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong');
+      debugPrint('FirebaseAuthException: [${e.code}] ${e.message}');
+      if (mounted) {
+        setState(() => _errorMessage = _getFirebaseError(e));
+      }
+    } catch (e) {
+      debugPrint('General SignUp Error: $e');
+      if (mounted) {
+        setState(() => _errorMessage = 'Something went wrong: ${e.toString()}');
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
     try {
-      await AuthService.instance.signInWithGoogle();
-      if (mounted) context.go('/dashboard');
+      final credential = await AuthService.instance.signInWithGoogle();
+      if (credential != null && mounted) {
+        context.go('/dashboard');
+      }
     } on FirebaseAuthException catch (e) {
-      setState(() => _errorMessage = e.message ?? 'Google sign-in failed');
-    } catch (_) {
-      setState(() => _errorMessage = 'Google sign-in failed');
+      debugPrint('FirebaseAuthException during Google Sign-In: ${e.code} - ${e.message}');
+      if (mounted) {
+        setState(() => _errorMessage = _getFirebaseError(e));
+      }
+    } catch (e) {
+      debugPrint('Google Sign-In General Error: $e');
+      if (mounted) {
+        setState(() => _errorMessage = 'Google sign-in failed');
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
