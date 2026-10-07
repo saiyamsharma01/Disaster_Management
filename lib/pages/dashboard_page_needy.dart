@@ -449,18 +449,18 @@ class DashboardPageNeedy extends StatelessWidget {
                   ),
                 ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: isEmphasis ? 60 : 44, color: color),
-                const SizedBox(height: 16),
+                Icon(icon, size: isEmphasis ? 52 : 40, color: color),
+                const SizedBox(height: 10),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
-                    fontSize: isEmphasis ? 18 : 16,
+                    fontSize: isEmphasis ? 17 : 15,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
