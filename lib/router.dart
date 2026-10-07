@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahaaya/pages/dashboard_page_needy.dart';
 import 'package:sahaaya/pages/sos_page.dart';
-import 'pages/home_page.dart';
+import 'pages/splash_page.dart';
 import 'pages/nearby_shelter_page.dart';
 import 'pages/ivr_demo_page.dart';
 import 'pages/ivr_outcome_page.dart';
@@ -41,7 +41,7 @@ GoRouter createRouter() {
       FirebaseAuth.instance.authStateChanges(),
     ),
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
       GoRoute(
         path: '/login',
         name: 'login',
@@ -121,7 +121,7 @@ GoRouter createRouterWithoutAuth() {
   return GoRouter(
     observers: [NavigatorObserver()],
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
       GoRoute(
         path: '/login',
         name: 'login',
