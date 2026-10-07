@@ -237,8 +237,12 @@ class _LoginPageState extends State<LoginPage> {
                   color: _darkTextColor,
                   size: 20,
                 ),
-                onPressed: () => context.go('/'),
-                tooltip: 'Back to Home',
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  }
+                },
+                tooltip: 'Back',
               ),
             ),
           ),

@@ -221,8 +221,14 @@ class _SignupPageState extends State<SignupPage> {
                   color: _darkTextColor,
                   size: 20,
                 ),
-                onPressed: () => context.go('/'),
-                tooltip: 'Back to Home',
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/login');
+                  }
+                },
+                tooltip: 'Back to Login',
               ),
             ),
           ),
