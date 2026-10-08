@@ -12,13 +12,18 @@ class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   bool _isInitialized = false;
 
+  static const String _webClientId =
+      '957169519273-710rul0r04dflsjk8to22u80iki82uon.apps.googleusercontent.com';
+
   // Initialize Google Sign-In
   Future<void> _ensureInitialized() async {
     if (_isInitialized) return;
     try {
-      await _googleSignIn.initialize();
+      await _googleSignIn.initialize(
+        serverClientId: _webClientId,
+      );
       _isInitialized = true;
-      debugPrint('✅ Google Sign-In initialized');
+      debugPrint('✅ Google Sign-In initialized with serverClientId');
     } catch (e) {
       debugPrint('⚠️ Google Sign-In initialization failed: $e');
       _isInitialized = true; // Continue anyway, some platforms don't need init
@@ -59,7 +64,17 @@ class AuthService {
         // On Web, use Firebase Auth's popup flow
         final provider = GoogleAuthProvider();
         provider.setCustomParameters({'prompt': 'select_account'});
-        credential = await _auth.signInWithPopup(provider);
+        try {
+          credential = await _auth.signInWithPopup(provider);
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'popup-closed-by-user' ||
+              e.code == 'auth/popup-closed-by-user' ||
+              e.code == 'cancelled-popup-request') {
+            debugPrint('Web Google Sign-In popup closed by user.');
+            return null;
+          }
+          rethrow;
+        }
       } else {
         // Ensure initialized before using
         await _ensureInitialized();
@@ -72,29 +87,39 @@ class AuthService {
         // Get auth credentials (synchronous property in v7)
         final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
+        final idToken = googleAuth.idToken;
+        if (idToken == null || idToken.isEmpty) {
+          debugPrint('⚠️ Google Sign-In returned null idToken. Check Firebase SHA-1 / Web Client ID config.');
+          throw FirebaseAuthException(
+            code: 'null-id-token',
+            message: 'Google Sign-In could not retrieve an ID token. Please verify SHA-1 fingerprint in Firebase Console.',
+          );
+        }
+
         // Create credential with idToken
         final authCred = GoogleAuthProvider.credential(
-          idToken: googleAuth.idToken,
+          idToken: idToken,
         );
 
         // Sign in to Firebase
         credential = await _auth.signInWithCredential(authCred);
       }
 
-      if (credential.user != null) {
-        await saveUserToFirestore(credential.user);
+      if (credential?.user != null) {
+        await saveUserToFirestore(credential!.user);
       }
 
       return credential;
     } on GoogleSignInException catch (e) {
       debugPrint('GoogleSignInException: ${e.code.name}');
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw FirebaseAuthException(
-          code: 'ERROR_ABORTED_BY_USER',
-          message: 'Sign in was canceled',
-        );
+        debugPrint('Google Sign-In canceled by user.');
+        return null;
       }
-      rethrow;
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: 'Google Sign-In error: ${e.code.name}',
+      );
     } on FirebaseAuthException catch (e) {
       debugPrint('FirebaseAuthException: ${e.code} - ${e.message}');
       rethrow;
