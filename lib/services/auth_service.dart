@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -14,6 +14,8 @@ class AuthService {
 
   static const String _webClientId =
       '957169519273-710rul0r04dflsjk8to22u80iki82uon.apps.googleusercontent.com';
+  static const String _iosClientId =
+      '957169519273-7hvs6f3rs32sot13ubkign2vi224gs78.apps.googleusercontent.com';
 
   // Initialize Google Sign-In
   Future<void> _ensureInitialized() async {
@@ -21,9 +23,12 @@ class AuthService {
     try {
       await _googleSignIn.initialize(
         serverClientId: _webClientId,
+        clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+            ? _iosClientId
+            : null,
       );
       _isInitialized = true;
-      debugPrint('✅ Google Sign-In initialized with serverClientId');
+      debugPrint('✅ Google Sign-In initialized with serverClientId & clientId');
     } catch (e) {
       debugPrint('⚠️ Google Sign-In initialization failed: $e');
       _isInitialized = true; // Continue anyway, some platforms don't need init
@@ -105,8 +110,8 @@ class AuthService {
         credential = await _auth.signInWithCredential(authCred);
       }
 
-      if (credential?.user != null) {
-        await saveUserToFirestore(credential!.user);
+      if (credential != null && credential.user != null) {
+        await saveUserToFirestore(credential.user);
       }
 
       return credential;
