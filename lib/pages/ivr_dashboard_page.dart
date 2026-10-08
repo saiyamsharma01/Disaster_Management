@@ -83,52 +83,101 @@ class IvrDashboardPage extends StatelessWidget {
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Flex(
-                direction: isLargeScreen ? Axis.horizontal : Axis.vertical,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    flex: isLargeScreen ? 2 : 0,
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
+              child: isLargeScreen
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        MetricCard(
-                          title: 'Total Calls (24h)',
-                          value: '$totalCalls',
-                          color: theme.colorScheme.primary,
-                          icon: Icons.timeline,
-                        ),
-                        MetricCard(
-                          title: 'Valid Selections',
-                          value: '$validCalls',
-                          color: theme.colorScheme.secondary,
-                          icon: Icons.check_circle,
-                        ),
-                        MetricCard(
-                          title: 'Invalid Inputs',
-                          value: '$invalidCalls',
-                          color: theme.colorScheme.error,
-                          icon: Icons.error_outline,
-                        ),
-                        ...totals.entries.map(
-                          (entry) => MetricCard(
-                            title: entry.key,
-                            value: '${entry.value}',
-                            color: optionColors[entry.key] ?? theme.primaryColor,
-                            icon: Icons.phone_in_talk,
+                        Expanded(
+                          flex: 2,
+                          child: SingleChildScrollView(
+                            child: Wrap(
+                              spacing: 16,
+                              runSpacing: 16,
+                              children: [
+                                MetricCard(
+                                  title: 'Total Calls (24h)',
+                                  value: '$totalCalls',
+                                  color: theme.colorScheme.primary,
+                                  icon: Icons.timeline,
+                                ),
+                                MetricCard(
+                                  title: 'Valid Selections',
+                                  value: '$validCalls',
+                                  color: theme.colorScheme.secondary,
+                                  icon: Icons.check_circle,
+                                ),
+                                MetricCard(
+                                  title: 'Invalid Inputs',
+                                  value: '$invalidCalls',
+                                  color: theme.colorScheme.error,
+                                  icon: Icons.error_outline,
+                                ),
+                                ...totals.entries.map(
+                                  (entry) => MetricCard(
+                                    title: entry.key,
+                                    value: '${entry.value}',
+                                    color: optionColors[entry.key] ?? theme.primaryColor,
+                                    icon: Icons.phone_in_talk,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 3,
+                          child: CallList(records: records),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              MetricCard(
+                                title: 'Total Calls',
+                                value: '$totalCalls',
+                                color: theme.colorScheme.primary,
+                                icon: Icons.timeline,
+                              ),
+                              const SizedBox(width: 12),
+                              MetricCard(
+                                title: 'Valid',
+                                value: '$validCalls',
+                                color: theme.colorScheme.secondary,
+                                icon: Icons.check_circle,
+                              ),
+                              const SizedBox(width: 12),
+                              MetricCard(
+                                title: 'Invalid',
+                                value: '$invalidCalls',
+                                color: theme.colorScheme.error,
+                                icon: Icons.error_outline,
+                              ),
+                              ...totals.entries.map(
+                                (entry) => Padding(
+                                  padding: const EdgeInsets.only(left: 12),
+                                  child: MetricCard(
+                                    title: entry.key,
+                                    value: '${entry.value}',
+                                    color: optionColors[entry.key] ?? theme.primaryColor,
+                                    icon: Icons.phone_in_talk,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: CallList(records: records),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24, width: 24),
-                  Expanded(
-                    flex: 3,
-                    child: CallList(records: records),
-                  ),
-                ],
-              ),
             ),
           );
         },

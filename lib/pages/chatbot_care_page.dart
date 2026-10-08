@@ -178,6 +178,7 @@ class _ChatbotCarePageState extends State<ChatbotCarePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -204,22 +205,26 @@ class _ChatbotCarePageState extends State<ChatbotCarePage> {
               child: const Icon(FontAwesomeIcons.robot, color: Color(0xFF4F46E5), size: 16),
             ),
             const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Chatbot Care AI',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+            const Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chatbot Care AI',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  '24/7 Disaster Preparedness Guide',
-                  style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
-                ),
-              ],
+                  Text(
+                    '24/7 Disaster Preparedness Guide',
+                    style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

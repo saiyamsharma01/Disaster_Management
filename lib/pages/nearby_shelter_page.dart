@@ -420,12 +420,15 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
               child: const Icon(FontAwesomeIcons.tent, color: Color(0xFF059669), size: 16),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Relief Shelters',
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
+            const Flexible(
+              child: Text(
+                'Relief Shelters',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -702,7 +705,9 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -711,6 +716,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.navigation_rounded, size: 12, color: Color(0xFF4F46E5)),
                     const SizedBox(width: 4),
@@ -721,7 +727,6 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(

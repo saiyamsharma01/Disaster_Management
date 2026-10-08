@@ -136,12 +136,15 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
               child: const Icon(FontAwesomeIcons.water, color: Color(0xFF0284C7), size: 16),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Flood & Water Radar',
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
+            const Flexible(
+              child: Text(
+                'Flood & Water Radar',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -324,27 +327,34 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: col.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: col.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(FontAwesomeIcons.water, color: col, size: 16),
                                 ),
-                                child: Icon(FontAwesomeIcons.water, color: col, size: 16),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                alert['location'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
-                                  color: Color(0xFF0F172A),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    alert['location'],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
@@ -431,6 +441,8 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
                 color: color,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

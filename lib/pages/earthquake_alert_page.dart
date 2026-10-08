@@ -132,13 +132,16 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
               ),
               child: const Icon(FontAwesomeIcons.volcano, color: Color(0xFFEA580C), size: 16),
             ),
-            const SizedBox(width: 10),
-            const Text(
-              'Earthquake Monitor',
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'Earthquake Monitor',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -418,6 +421,8 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
           child: Text(
             value,
             style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

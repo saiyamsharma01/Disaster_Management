@@ -238,6 +238,7 @@ class _NeedyViewPageState extends State<NeedyViewPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -254,16 +255,18 @@ class _NeedyViewPageState extends State<NeedyViewPage>
           tooltip: 'Back',
         ),
         title: const Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.volunteer_activism_rounded, color: Color(0xFF059669), size: 22),
+            Icon(Icons.volunteer_activism_rounded, color: Color(0xFF059669), size: 20),
             SizedBox(width: 8),
-            Text(
-              'Support Portal',
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
+            Flexible(
+              child: Text(
+                'Support Portal',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

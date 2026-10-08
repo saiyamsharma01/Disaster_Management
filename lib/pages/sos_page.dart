@@ -333,11 +333,14 @@ class _SosPageState extends State<SosPage> {
         ),
         title: const Row(
           children: [
-            Icon(Icons.shield_rounded, color: Colors.white, size: 22),
-            SizedBox(width: 10),
-            Text(
-              'Emergency SOS Radar',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Emergency SOS Radar',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -688,6 +691,8 @@ class _SosPageState extends State<SosPage> {
                   subtitle: Text(
                     '${_formatTimestamp(alert.timestamp)} • ${alert.isDemo ? "Simulated" : "Live User GPS"}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                   onTap: () {

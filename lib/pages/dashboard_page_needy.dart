@@ -335,6 +335,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
               title,
               textAlign: TextAlign.center,
               maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -631,13 +632,17 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  t.emergencySos.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.0,
-                                    color: Colors.white,
+                                Flexible(
+                                  child: Text(
+                                    t.emergencySos.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.0,
+                                      color: Colors.white,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -724,7 +729,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                 crossAxisCount: isWideScreen ? 3 : 2,
                 mainAxisSpacing: 14,
                 crossAxisSpacing: 14,
-                childAspectRatio: 1.05,
+                childAspectRatio: isWideScreen ? 1.25 : 1.0,
                 children: [
                   // 1. Flood Alerts
                   _buildServiceCard(
