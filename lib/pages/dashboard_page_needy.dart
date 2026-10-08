@@ -388,34 +388,34 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
           elevation: 0,
           scrolledUnderElevation: 1,
           shadowColor: Colors.black.withValues(alpha: 0.05),
-          leadingWidth: 160,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      'assets/images/sahaaya_logo.png',
-                      fit: BoxFit.cover,
+          titleSpacing: 16,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryColor.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/sahaaya_logo.png',
+                    fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -427,8 +427,11 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                         letterSpacing: 1.0,
                         color: _darkSlate,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           width: 6,
@@ -439,21 +442,25 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          'ACTIVE DISASTER NET',
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                            color: Color(0xFF10B981),
+                        const Flexible(
+                          child: Text(
+                            'ACTIVE DISASTER NET',
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                              color: Color(0xFF10B981),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           actions: [
             IconButton(
