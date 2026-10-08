@@ -155,10 +155,29 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
   @override
   void initState() {
     super.initState();
+    _fetchFastUserLocation();
+  }
+
+  Future<void> _fetchFastUserLocation() async {
+    // 1. Instantly get last known position (0ms)
+    try {
+      final lastPos = await geolocator.Geolocator.getLastKnownPosition();
+      if (lastPos != null && mounted) {
+        setState(() {
+          _currentLat = lastPos.latitude;
+          _currentLng = lastPos.longitude;
+          _hasUserLocation = true;
+        });
+        _animateToLocation(_currentLat, _currentLng, 14.0);
+      }
+    } catch (_) {}
+
+    // 2. Refine in background with 4s timeout
     _fetchUserLocation();
   }
 
   Future<void> _fetchUserLocation() async {
+    if (_isLoadingLocation) return;
     setState(() => _isLoadingLocation = true);
     try {
       geolocator.LocationPermission permission =
@@ -171,8 +190,8 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
           permission == geolocator.LocationPermission.whileInUse) {
         final pos = await geolocator.Geolocator.getCurrentPosition(
           locationSettings: const geolocator.LocationSettings(
-            accuracy: geolocator.LocationAccuracy.high,
-            timeLimit: Duration(seconds: 8),
+            accuracy: geolocator.LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 4),
           ),
         );
         if (mounted) {
@@ -185,15 +204,11 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
           _animateToLocation(_currentLat, _currentLng, 14.0);
         }
       } else {
-        if (mounted) {
-          setState(() => _isLoadingLocation = false);
-        }
+        if (mounted) setState(() => _isLoadingLocation = false);
       }
     } catch (e) {
       debugPrint('Location error: $e');
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
-      }
+      if (mounted) setState(() => _isLoadingLocation = false);
     }
   }
 
@@ -232,10 +247,11 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
   }
 
   List<_Shelter> get _filteredShelters {
+    final search = _searchQuery.trim().toLowerCase();
     return _allShelters.where((s) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          s.address.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesSearch = search.isEmpty ||
+          s.name.toLowerCase().contains(search) ||
+          s.address.toLowerCase().contains(search);
 
       if (!matchesSearch) return false;
 
@@ -254,6 +270,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
   }
 
   Widget _buildMapWidget() {
+    final filtered = _filteredShelters;
     final markers = <Marker>[];
 
     // User Location Marker
@@ -292,20 +309,20 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
     }
 
     // Shelter Markers
-    for (final shelter in _filteredShelters) {
+    for (final shelter in filtered) {
       final isSelected = _selectedShelter?.id == shelter.id;
       final percent = shelter.occupancy / shelter.capacity;
       final Color markerColor = percent > 0.85
-          ? Colors.red
+          ? const Color(0xFFDC2626)
           : percent > 0.6
-              ? Colors.amber.shade800
-              : Colors.green;
+              ? const Color(0xFFD97706)
+              : const Color(0xFF059669);
 
       markers.add(
         Marker(
           point: LatLng(shelter.latitude, shelter.longitude),
-          width: isSelected ? 54 : 44,
-          height: isSelected ? 54 : 44,
+          width: isSelected ? 52 : 42,
+          height: isSelected ? 52 : 42,
           child: GestureDetector(
             onTap: () {
               setState(() => _selectedShelter = shelter);
@@ -316,7 +333,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
               );
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 180),
               decoration: BoxDecoration(
                 color: isSelected ? markerColor : Colors.white,
                 shape: BoxShape.circle,
@@ -326,7 +343,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: markerColor.withValues(alpha: isSelected ? 0.6 : 0.3),
+                    color: markerColor.withValues(alpha: isSelected ? 0.6 : 0.25),
                     blurRadius: isSelected ? 12 : 6,
                     offset: const Offset(0, 3),
                   ),
@@ -336,7 +353,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
                 child: Icon(
                   FontAwesomeIcons.houseUser,
                   color: isSelected ? Colors.white : markerColor,
-                  size: isSelected ? 24 : 18,
+                  size: isSelected ? 22 : 16,
                 ),
               ),
             ),
@@ -345,27 +362,29 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
       );
     }
 
-    return FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(
-        initialCenter: LatLng(_currentLat, _currentLng),
-        initialZoom: 13.0,
-        minZoom: 3.0,
-        maxZoom: 18.0,
-        onTap: (tapPosition, point) {
-          if (_selectedShelter != null) {
-            setState(() => _selectedShelter = null);
-          }
-        },
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.cgc',
-          maxZoom: 19,
+    return RepaintBoundary(
+      child: FlutterMap(
+        mapController: _mapController,
+        options: MapOptions(
+          initialCenter: LatLng(_currentLat, _currentLng),
+          initialZoom: 13.0,
+          minZoom: 3.0,
+          maxZoom: 18.0,
+          onTap: (tapPosition, point) {
+            if (_selectedShelter != null) {
+              setState(() => _selectedShelter = null);
+            }
+          },
         ),
-        MarkerLayer(markers: markers),
-      ],
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.example.sahaaya',
+            maxZoom: 19,
+          ),
+          MarkerLayer(markers: markers),
+        ],
+      ),
     );
   }
 
@@ -374,9 +393,13 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
     final bool isNarrow = MediaQuery.of(context).size.width < 700;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -387,12 +410,23 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
           tooltip: 'Back',
         ),
         title: Row(
-          children: const [
-            Icon(FontAwesomeIcons.houseFloodWater, color: Colors.green),
-            SizedBox(width: 10),
-            Text(
-              'Nearby Shelters',
-              style: TextStyle(fontWeight: FontWeight.bold),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(FontAwesomeIcons.tent, color: Color(0xFF059669), size: 16),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Relief Shelters',
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -400,14 +434,15 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
           IconButton(
             icon: _isLoadingLocation
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4F46E5)),
                   )
-                : const Icon(Icons.my_location),
+                : const Icon(Icons.my_location_rounded, color: Color(0xFF4F46E5)),
             tooltip: 'Get Current Location',
             onPressed: _fetchUserLocation,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: isNarrow ? _buildMobileLayout() : _buildTabletLayout(),
@@ -415,34 +450,40 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
   }
 
   Widget _buildMobileLayout() {
+    final filtered = _filteredShelters;
+
     return Stack(
       children: [
         // Full Map
         Positioned.fill(child: _buildMapWidget()),
 
-        // Filter Chips Floating on Top
+        // Top Filter Bar & Search
         Positioned(
           top: 12,
           left: 12,
           right: 12,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('All', Icons.apps),
-                const SizedBox(width: 8),
-                _buildFilterChip('Available', Icons.check_circle_outline),
-                const SizedBox(width: 8),
-                _buildFilterChip('High Capacity', Icons.people_outline),
-              ],
-            ),
+          child: Column(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('All', Icons.apps_rounded),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Available', Icons.check_circle_rounded),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('High Capacity', Icons.people_alt_rounded),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
 
         // Zoom & Location Controls on the Right
         Positioned(
           right: 16,
-          bottom: _selectedShelter != null ? 220 : 80,
+          bottom: _selectedShelter != null ? 240 : 80,
           child: Column(
             children: [
               _RoundIconButton(icon: Icons.add, onPressed: _zoomIn),
@@ -450,7 +491,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
               _RoundIconButton(icon: Icons.remove, onPressed: _zoomOut),
               const SizedBox(height: 8),
               _RoundIconButton(
-                icon: Icons.my_location,
+                icon: Icons.my_location_rounded,
                 onPressed: () {
                   _fetchUserLocation();
                   _animateToLocation(_currentLat, _currentLng, 14.0);
@@ -467,7 +508,7 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
             bottom: 20,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A00E0),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -476,12 +517,12 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                elevation: 6,
+                elevation: 4,
               ),
-              icon: const Icon(FontAwesomeIcons.list),
+              icon: const Icon(Icons.format_list_bulleted_rounded, size: 18),
               label: Text(
-                'View All (${_filteredShelters.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                'List View (${filtered.length})',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               onPressed: _showShelterListModal,
             ),
@@ -500,103 +541,65 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
   }
 
   Widget _buildTabletLayout() {
+    final filtered = _filteredShelters;
+
     return Row(
       children: [
-        // Left: Map
+        // Left Column: Search, Filters & Shelter List
         Expanded(
-          flex: 6,
-          child: Stack(
-            children: [
-              _buildMapWidget(),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: Column(
-                  children: [
-                    _RoundIconButton(icon: Icons.add, onPressed: _zoomIn),
-                    const SizedBox(height: 8),
-                    _RoundIconButton(icon: Icons.remove, onPressed: _zoomOut),
-                    const SizedBox(height: 8),
-                    _RoundIconButton(
-                      icon: Icons.my_location,
-                      onPressed: () {
-                        _fetchUserLocation();
-                        _animateToLocation(_currentLat, _currentLng, 14.0);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Right: Sidebar with Search, Filter & List
-        Expanded(
-          flex: 4,
+          flex: 2,
           child: Container(
-            color: Colors.grey.shade50,
+            color: Colors.white,
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
                       TextField(
                         onChanged: (val) => setState(() => _searchQuery = val),
                         decoration: InputDecoration(
-                          hintText: 'Search shelters or areas...',
-                          prefixIcon: const Icon(Icons.search),
+                          hintText: 'Search shelters by name or area...',
+                          prefixIcon: const Icon(Icons.search_rounded),
                           filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                          fillColor: const Color(0xFFF1F5F9),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFilterChip('All', Icons.apps),
-                            const SizedBox(width: 8),
-                            _buildFilterChip(
-                              'Available',
-                              Icons.check_circle_outline,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildFilterChip(
-                              'High Capacity',
-                              Icons.people_outline,
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildFilterChip('All', Icons.apps_rounded),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Available', Icons.check_circle_rounded),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('High Capacity', Icons.people_alt_rounded),
+                        ],
                       ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: ListView.separated(
+                  child: ListView.builder(
                     padding: const EdgeInsets.all(12),
-                    itemCount: _filteredShelters.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final shelter = _filteredShelters[index];
-                      final isSelected = _selectedShelter?.id == shelter.id;
-                      return _buildShelterTile(shelter, isSelected);
-                    },
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) => _buildShelterListTile(filtered[i]),
                   ),
                 ),
               ],
             ),
           ),
+        ),
+        Container(width: 1, color: const Color(0xFFE2E8F0)),
+        // Right Column: Map
+        Expanded(
+          flex: 3,
+          child: _buildMapWidget(),
         ),
       ],
     );
@@ -604,174 +607,42 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
 
   Widget _buildFilterChip(String label, IconData icon) {
     final isSelected = _selectedFilter == label;
-    return FilterChip(
-      selected: isSelected,
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : Colors.black87,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => setState(() => _selectedFilter = label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F172A) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+            width: 1.2,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
-      ),
-      backgroundColor: Colors.white,
-      selectedColor: const Color(0xFF4A00E0),
-      elevation: 2,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _selectedFilter = label);
-        }
-      },
-    );
-  }
-
-  Widget _buildSelectedShelterCard(_Shelter shelter) {
-    final distance = _getDistanceInKm(shelter.latitude, shelter.longitude);
-    final percent = shelter.occupancy / shelter.capacity;
-    final Color statusColor = percent > 0.85
-        ? Colors.red
-        : percent > 0.6
-            ? Colors.amber.shade800
-            : Colors.green;
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+          ],
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(FontAwesomeIcons.house, color: statusColor, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        shelter.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        shelter.address,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => setState(() => _selectedShelter = null),
-                ),
-              ],
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? Colors.white : const Color(0xFF64748B),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Occupancy: ${shelter.occupancy} / ${shelter.capacity}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '${(percent * 100).toInt()}% Full',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: percent.clamp(0.0, 1.0),
-                backgroundColor: Colors.grey.shade200,
-                color: statusColor,
-                minHeight: 8,
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : const Color(0xFF0F172A),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: Colors.blue.shade700),
-                const SizedBox(width: 4),
-                Text(
-                  '${distance.toStringAsFixed(1)} km away',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A00E0),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
-                  icon: const Icon(Icons.directions, size: 18),
-                  label: const Text('Directions'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Routing to ${shelter.name}...'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                    _animateToLocation(
-                      shelter.latitude,
-                      shelter.longitude,
-                      16.0,
-                    );
-                  },
-                ),
-              ],
             ),
           ],
         ),
@@ -779,176 +650,173 @@ class _NearbyShelterPageState extends State<NearbyShelterPage> {
     );
   }
 
-  Widget _buildShelterTile(_Shelter shelter, bool isSelected) {
-    final distance = _getDistanceInKm(shelter.latitude, shelter.longitude);
+  Widget _buildSelectedShelterCard(_Shelter shelter) {
+    final dist = _getDistanceInKm(shelter.latitude, shelter.longitude);
     final percent = shelter.occupancy / shelter.capacity;
-    final Color statusColor = percent > 0.85
-        ? Colors.red
-        : percent > 0.6
-            ? Colors.amber.shade800
-            : Colors.green;
 
-    return Card(
-      elevation: isSelected ? 4 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: isSelected
-            ? const BorderSide(color: Color(0xFF4A00E0), width: 2)
-            : BorderSide.none,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          setState(() => _selectedShelter = shelter);
-          _animateToLocation(shelter.latitude, shelter.longitude, 15.0);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      shelter.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              Expanded(
+                child: Text(
+                  shelter.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      percent > 0.85
-                          ? 'Almost Full'
-                          : percent > 0.6
-                              ? 'Moderate'
-                              : 'Available',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                shelter.address,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.close_rounded, size: 20),
+                onPressed: () => setState(() => _selectedShelter = null),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Capacity: ${shelter.occupancy}/${shelter.capacity}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  Text(
-                    '${distance.toStringAsFixed(1)} km away',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            shelter.address,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.navigation_rounded, size: 12, color: Color(0xFF4F46E5)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${dist.toStringAsFixed(1)} km away',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: percent.clamp(0.0, 1.0),
-                  backgroundColor: Colors.grey.shade200,
-                  color: statusColor,
-                  minHeight: 6,
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: percent > 0.85 ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${shelter.capacity - shelter.occupancy} Beds Available',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: percent > 0.85 ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 
   void _showShelterListModal() {
+    final filtered = _filteredShelters;
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.65,
-              minChildSize: 0.4,
-              maxChildSize: 0.92,
-              builder: (context, scrollController) {
-                return SafeArea(
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextField(
-                          onChanged: (val) {
-                            setState(() => _searchQuery = val);
-                            setModalState(() {});
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search shelter by name or address...',
-                            prefixIcon: const Icon(Icons.search),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: ListView.separated(
-                          controller: scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredShelters.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final shelter = _filteredShelters[index];
-                            final isSelected =
-                                _selectedShelter?.id == shelter.id;
-                            return _buildShelterTile(shelter, isSelected);
-                          },
-                        ),
-                      ),
-                    ],
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Relief Shelters (${filtered.length})',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
-                );
-              },
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(12),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) {
+                      final s = filtered[i];
+                      return _buildShelterListTile(s, inModal: true);
+                    },
+                  ),
+                ),
+              ],
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildShelterListTile(_Shelter s, {bool inModal = false}) {
+    final dist = _getDistanceInKm(s.latitude, s.longitude);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      child: ListTile(
+        onTap: () {
+          if (inModal) Navigator.pop(context);
+          setState(() => _selectedShelter = s);
+          _animateToLocation(s.latitude, s.longitude, 15.0);
+        },
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(FontAwesomeIcons.house, color: Color(0xFF059669), size: 16),
+        ),
+        title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        subtitle: Text('${dist.toStringAsFixed(1)} km • ${s.capacity - s.occupancy} beds left', style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      ),
     );
   }
 }
@@ -974,16 +842,16 @@ class _Shelter {
     required this.longitude,
     required this.capacity,
     required this.occupancy,
-    this.hasMedical = true,
-    this.hasFood = true,
+    required this.hasMedical,
+    required this.hasFood,
   });
 }
 
 class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({required this.icon, required this.onPressed});
+
   final IconData icon;
   final VoidCallback onPressed;
-
-  const _RoundIconButton({required this.icon, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -991,23 +859,23 @@ class _RoundIconButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          customBorder: const CircleBorder(),
+          borderRadius: BorderRadius.circular(24),
           onTap: onPressed,
           child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, size: 22, color: Colors.black87),
+            width: 42,
+            height: 42,
+            child: Icon(icon, size: 20, color: const Color(0xFF0F172A)),
           ),
         ),
       ),

@@ -30,8 +30,6 @@ class AuthService {
     if (user == null) return;
     try {
       final docRef = _firestore.collection('users').doc(user.uid);
-      final docSnap = await docRef.get();
-
       final username = customUsername ??
           user.displayName ??
           (user.email != null && user.email!.contains('@')
@@ -45,10 +43,6 @@ class AuthService {
         'photoUrl': user.photoURL ?? '',
         'lastLogin': FieldValue.serverTimestamp(),
       };
-
-      if (!docSnap.exists) {
-        data['createdAt'] = FieldValue.serverTimestamp();
-      }
 
       await docRef.set(data, SetOptions(merge: true));
       debugPrint('✅ User data saved to Firestore: ${user.uid}');

@@ -24,6 +24,7 @@ class _SosPageState extends State<SosPage> {
   static const double _centerLat = 31.6340;
   static const double _centerLng = 74.8723; // Amritsar center
   final NotificationService _notificationService = NotificationService();
+  bool _isSending = false;
 
   static final List<_AlertData> _demoAlerts = [
     _AlertData(
@@ -103,47 +104,72 @@ class _SosPageState extends State<SosPage> {
   @override
   void initState() {
     super.initState();
-    // Automatically send SOS when page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      sendSOS();
-    });
+    // Fast initial location probe in background without blocking UI
+    _tryGetFastInitialLocation();
+  }
+
+  Future<void> _tryGetFastInitialLocation() async {
+    try {
+      final lastPos = await geolocator.Geolocator.getLastKnownPosition();
+      if (lastPos != null && mounted) {
+        _animateToLocation(lastPos.latitude, lastPos.longitude, 13.5);
+      }
+    } catch (_) {}
   }
 
   void _animateToLocation(double lat, double lng, double zoom) {
-    _mapController.move(LatLng(lat, lng), zoom);
+    try {
+      _mapController.move(LatLng(lat, lng), zoom);
+    } catch (_) {}
   }
 
   void _zoomIn() {
-    _mapController.move(
-        _mapController.camera.center, _mapController.camera.zoom + 1);
+    try {
+      _mapController.move(
+          _mapController.camera.center, _mapController.camera.zoom + 1);
+    } catch (_) {}
   }
 
   void _zoomOut() {
-    _mapController.move(
-        _mapController.camera.center, _mapController.camera.zoom - 1);
+    try {
+      _mapController.move(
+          _mapController.camera.center, _mapController.camera.zoom - 1);
+    } catch (_) {}
   }
 
-  /// SOS function to save location to Firestore
+  /// Fast, non-blocking SOS broadcast
   Future<void> sendSOS() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+
     try {
-      // Ask for location permission if not granted
-      geolocator.LocationPermission permission = await geolocator.Geolocator
-          .checkPermission();
+      geolocator.LocationPermission permission = await geolocator.Geolocator.checkPermission();
       if (permission == geolocator.LocationPermission.denied ||
           permission == geolocator.LocationPermission.deniedForever) {
         permission = await geolocator.Geolocator.requestPermission();
       }
 
-      // Get current location
-      geolocator.Position position = await geolocator.Geolocator
-          .getCurrentPosition(
-        locationSettings: const geolocator.LocationSettings(
-          accuracy: geolocator.LocationAccuracy.high,
-        ),
-      );
+      double lat = _centerLat;
+      double lng = _centerLng;
 
-      final double lat = position.latitude;
-      final double lng = position.longitude;
+      // Try fast last known position first
+      final lastPos = await geolocator.Geolocator.getLastKnownPosition();
+      if (lastPos != null) {
+        lat = lastPos.latitude;
+        lng = lastPos.longitude;
+      } else {
+        // Fallback to current position with strict 4s timeout
+        try {
+          final pos = await geolocator.Geolocator.getCurrentPosition(
+            locationSettings: const geolocator.LocationSettings(
+              accuracy: geolocator.LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 4),
+            ),
+          );
+          lat = pos.latitude;
+          lng = pos.longitude;
+        } catch (_) {}
+      }
 
       // Save to Firestore
       await FirebaseFirestore.instance.collection('sos_locations').add({
@@ -152,21 +178,31 @@ class _SosPageState extends State<SosPage> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // After saving, animate map to new SOS location
+      // Animate map to SOS location
       _animateToLocation(lat, lng, 15);
 
-      // Send notification about SOS alert
-      await _notificationService.showLocalNotification(
-        title: '🚨 SOS Alert Sent',
-        body: 'Emergency SOS alert has been sent from your location. Help is on the way!',
-        payload: 'sos_alert:$lat:$lng',
-      );
+      // Send local notification
+      try {
+        await _notificationService.showLocalNotification(
+          title: '🚨 SOS Alert Dispatched',
+          body: 'Emergency SOS alert broadcasted from your location. Responders alerted!',
+          payload: 'sos_alert:$lat:$lng',
+        );
+      } catch (_) {}
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Live SOS alert sent successfully!'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Text('Emergency SOS broadcasted successfully!'),
+              ],
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -174,8 +210,15 @@ class _SosPageState extends State<SosPage> {
       debugPrint('Error sending SOS: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send SOS: $e')),
+          SnackBar(
+            content: Text('Failed to broadcast SOS: $e'),
+            backgroundColor: Colors.black87,
+          ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
       }
     }
   }
@@ -270,18 +313,15 @@ class _SosPageState extends State<SosPage> {
     return '${lat.toStringAsFixed(3)}°, ${lng.toStringAsFixed(3)}°';
   }
 
-  String _formatRadius(double meters) {
-    return '${(meters / 1000).toStringAsFixed(1)} km';
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isNarrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -293,18 +333,45 @@ class _SosPageState extends State<SosPage> {
         ),
         title: const Row(
           children: [
-            Icon(FontAwesomeIcons.triangleExclamation, color: Colors.red),
+            Icon(Icons.shield_rounded, color: Colors.white, size: 22),
             SizedBox(width: 10),
-            Text('SOS Emergency'),
+            Text(
+              'Emergency SOS Radar',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            ),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: const Color(0xFFDC2626),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.sos, color: Colors.white),
-            onPressed: sendSOS,
-            tooltip: 'Send Live SOS Alert',
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _isSending
+                ? const Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFFDC2626),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.emergency_rounded, size: 18),
+                    label: const Text(
+                      'TRIGGER SOS',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                    ),
+                    onPressed: sendSOS,
+                  ),
           ),
         ],
       ),
@@ -312,25 +379,9 @@ class _SosPageState extends State<SosPage> {
         stream: FirebaseFirestore.instance
             .collection('sos_locations')
             .orderBy('timestamp', descending: true)
+            .limit(40)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
-                ],
-              ),
-            );
-          }
-
           final List<_AlertData> alerts = _collectAlerts(snapshot.data);
           final List<_Hotspot> hotspots = _identifyHotspots(alerts);
 
@@ -338,75 +389,65 @@ class _SosPageState extends State<SosPage> {
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Card(
-                    margin: const EdgeInsets.all(8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: const LatLng(_centerLat, _centerLng),
-                          initialZoom: 13.0,
-                          minZoom: 3.0,
-                          maxZoom: 18.0,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.sahaaya',
-                          ),
-                          // Hotspot circles
-                          ...hotspots.map((hotspot) =>
-                              CircleLayer(
-                                circles: [
-                                  // Caution circle (yellow)
-                                  CircleMarker(
-                                    point: LatLng(
-                                        hotspot.latitude, hotspot.longitude),
-                                    radius: _cautionRadiusMeters,
-                                    color: Colors.yellow.withValues(alpha: 0.2),
-                                    borderColor: Colors.orangeAccent
-                                        .withValues(alpha: 0.6),
-                                    borderStrokeWidth: 2.0,
-                                    useRadiusInMeter: true,
-                                  ),
-                                  // Core circle (red)
-                                  CircleMarker(
-                                    point: LatLng(
-                                        hotspot.latitude, hotspot.longitude),
-                                    radius: _coreRadiusMeters,
-                                    color: Colors.red.withValues(alpha: 0.35),
-                                    borderColor: Colors.red,
-                                    borderStrokeWidth: 2.4,
-                                    useRadiusInMeter: true,
-                                  ),
-                                ],
-                              )),
-                          // Alert markers
-                          MarkerLayer(
-                            markers: alerts.map((alert) =>
-                                Marker(
-                                  point: LatLng(
-                                      alert.latitude, alert.longitude),
-                                  width: 40,
-                                  height: 40,
-                                  child: Icon(
-                                    Icons.location_on,
-                                    color: alert.isDemo
-                                        ? Colors.orangeAccent
-                                        : Colors.red,
-                                    size: 40,
-                                  ),
-                                )).toList(),
-                          ),
-                        ],
+                  child: RepaintBoundary(
+                    child: FlutterMap(
+                      mapController: _mapController,
+                      options: const MapOptions(
+                        initialCenter: LatLng(_centerLat, _centerLng),
+                        initialZoom: 13.0,
+                        minZoom: 3.0,
+                        maxZoom: 18.0,
                       ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.sahaaya',
+                        ),
+                        // Hotspot circles
+                        ...hotspots.map((hotspot) => CircleLayer(
+                              circles: [
+                                CircleMarker(
+                                  point: LatLng(hotspot.latitude, hotspot.longitude),
+                                  radius: _cautionRadiusMeters,
+                                  color: Colors.yellow.withValues(alpha: 0.2),
+                                  borderColor: Colors.orangeAccent.withValues(alpha: 0.6),
+                                  borderStrokeWidth: 2.0,
+                                  useRadiusInMeter: true,
+                                ),
+                                CircleMarker(
+                                  point: LatLng(hotspot.latitude, hotspot.longitude),
+                                  radius: _coreRadiusMeters,
+                                  color: Colors.red.withValues(alpha: 0.35),
+                                  borderColor: Colors.red,
+                                  borderStrokeWidth: 2.4,
+                                  useRadiusInMeter: true,
+                                ),
+                              ],
+                            )),
+                        // Alert markers
+                        MarkerLayer(
+                          markers: alerts
+                              .map((alert) => Marker(
+                                    point: LatLng(alert.latitude, alert.longitude),
+                                    width: 36,
+                                    height: 36,
+                                    child: Icon(
+                                      Icons.location_on_rounded,
+                                      color: alert.isDemo
+                                          ? const Color(0xFFF97316)
+                                          : const Color(0xFFDC2626),
+                                      size: 36,
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 Positioned(
                   right: 16,
-                  bottom: 16,
+                  bottom: 20,
                   child: Column(
                     children: [
                       _RoundIconButton(icon: Icons.add, onPressed: _zoomIn),
@@ -414,36 +455,41 @@ class _SosPageState extends State<SosPage> {
                       _RoundIconButton(icon: Icons.remove, onPressed: _zoomOut),
                       const SizedBox(height: 8),
                       _RoundIconButton(
-                        icon: Icons.my_location,
-                        onPressed: () =>
-                            _animateToLocation(_centerLat, _centerLng, 13),
+                        icon: Icons.my_location_rounded,
+                        onPressed: () => _animateToLocation(_centerLat, _centerLng, 13),
                       ),
                     ],
                   ),
                 ),
                 Positioned(
                   left: 16,
-                  bottom: 16,
+                  bottom: 20,
                   child: ElevatedButton.icon(
-                    icon: const Icon(FontAwesomeIcons.list),
-                    label: Text('SOS Alerts (${alerts.length})'),
+                    icon: const Icon(Icons.format_list_bulleted_rounded, size: 18),
+                    label: Text('Alerts (${alerts.length})', style: const TextStyle(fontWeight: FontWeight.w700)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: const Color(0xFF0F172A),
                       foregroundColor: Colors.white,
+                      elevation: 4,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
                         showDragHandle: true,
                         isScrollControlled: true,
+                        backgroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
                         builder: (ctx) => DraggableScrollableSheet(
                           expand: false,
                           initialChildSize: 0.55,
                           minChildSize: 0.35,
                           maxChildSize: 0.9,
                           builder: (context, scrollController) {
-                            return _buildAlertsList(
-                                alerts, hotspots, scrollController);
+                            return _buildAlertsList(alerts, hotspots, scrollController);
                           },
                         ),
                       );
@@ -454,100 +500,88 @@ class _SosPageState extends State<SosPage> {
             );
           }
 
-          // Desktop/Wide layout
+          // Desktop / Wide layout
           return Row(
             children: [
               Expanded(
                 flex: 3,
-                child: Card(
-                  margin: const EdgeInsets.all(8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Stack(
-                      children: [
-                        FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: const LatLng(_centerLat, _centerLng),
-                            initialZoom: 13.0,
-                            minZoom: 3.0,
-                            maxZoom: 18.0,
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.sahaaya',
-                            ),
-                            // Hotspot circles
-                            ...hotspots.map((hotspot) =>
-                                CircleLayer(
-                                  circles: [
-                                    CircleMarker(
-                                      point: LatLng(
-                                          hotspot.latitude, hotspot.longitude),
-                                      radius: _cautionRadiusMeters,
-                                      color: Colors.yellow.withValues(alpha: 0.2),
-                                      borderColor: Colors.orangeAccent
-                                          .withValues(alpha: 0.6),
-                                      borderStrokeWidth: 2.0,
-                                      useRadiusInMeter: true,
-                                    ),
-                                    CircleMarker(
-                                      point: LatLng(
-                                          hotspot.latitude, hotspot.longitude),
-                                      radius: _coreRadiusMeters,
-                                      color: Colors.red.withValues(alpha: 0.35),
-                                      borderColor: Colors.red,
-                                      borderStrokeWidth: 2.4,
-                                      useRadiusInMeter: true,
-                                    ),
-                                  ],
-                                )),
-                            MarkerLayer(
-                              markers: alerts.map((alert) =>
-                                  Marker(
-                                    point: LatLng(
-                                        alert.latitude, alert.longitude),
-                                    width: 40,
-                                    height: 40,
-                                    child: Icon(
-                                      Icons.location_on,
-                                      color: alert.isDemo
-                                          ? Colors.orangeAccent
-                                          : Colors.red,
-                                      size: 40,
-                                    ),
-                                  )).toList(),
-                            ),
-                          ],
+                child: Stack(
+                  children: [
+                    RepaintBoundary(
+                      child: FlutterMap(
+                        mapController: _mapController,
+                        options: const MapOptions(
+                          initialCenter: LatLng(_centerLat, _centerLng),
+                          initialZoom: 13.0,
+                          minZoom: 3.0,
+                          maxZoom: 18.0,
                         ),
-                        Positioned(
-                          right: 16,
-                          bottom: 16,
-                          child: Column(
-                            children: [
-                              _RoundIconButton(
-                                  icon: Icons.add, onPressed: _zoomIn),
-                              const SizedBox(height: 8),
-                              _RoundIconButton(
-                                  icon: Icons.remove, onPressed: _zoomOut),
-                              const SizedBox(height: 8),
-                              _RoundIconButton(
-                                icon: Icons.my_location,
-                                onPressed: () =>
-                                    _animateToLocation(
-                                        _centerLat, _centerLng, 13),
-                              ),
-                            ],
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.sahaaya',
                           ),
-                        ),
-                      ],
+                          ...hotspots.map((hotspot) => CircleLayer(
+                                circles: [
+                                  CircleMarker(
+                                    point: LatLng(hotspot.latitude, hotspot.longitude),
+                                    radius: _cautionRadiusMeters,
+                                    color: Colors.yellow.withValues(alpha: 0.2),
+                                    borderColor: Colors.orangeAccent.withValues(alpha: 0.6),
+                                    borderStrokeWidth: 2.0,
+                                    useRadiusInMeter: true,
+                                  ),
+                                  CircleMarker(
+                                    point: LatLng(hotspot.latitude, hotspot.longitude),
+                                    radius: _coreRadiusMeters,
+                                    color: Colors.red.withValues(alpha: 0.35),
+                                    borderColor: Colors.red,
+                                    borderStrokeWidth: 2.4,
+                                    useRadiusInMeter: true,
+                                  ),
+                                ],
+                              )),
+                          MarkerLayer(
+                            markers: alerts
+                                .map((alert) => Marker(
+                                      point: LatLng(alert.latitude, alert.longitude),
+                                      width: 36,
+                                      height: 36,
+                                      child: Icon(
+                                        Icons.location_on_rounded,
+                                        color: alert.isDemo
+                                            ? const Color(0xFFF97316)
+                                            : const Color(0xFFDC2626),
+                                        size: 36,
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      right: 16,
+                      bottom: 20,
+                      child: Column(
+                        children: [
+                          _RoundIconButton(icon: Icons.add, onPressed: _zoomIn),
+                          const SizedBox(height: 8),
+                          _RoundIconButton(icon: Icons.remove, onPressed: _zoomOut),
+                          const SizedBox(height: 8),
+                          _RoundIconButton(
+                            icon: Icons.my_location_rounded,
+                            onPressed: () => _animateToLocation(_centerLat, _centerLng, 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              Container(width: 1, color: Colors.grey.shade200),
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: _buildAlertsList(alerts, hotspots, null),
               ),
             ],
@@ -561,73 +595,106 @@ class _SosPageState extends State<SosPage> {
       ScrollController? scrollController) {
     return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
-        const ListTile(
-          leading: Icon(
-              FontAwesomeIcons.triangleExclamation, color: Colors.red),
-          title: Text('SOS Alerts Overview'),
-          subtitle: Text('Live reports with demo data for showcase.'),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(FontAwesomeIcons.triangleExclamation, color: Colors.red, size: 18),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('SOS Alerts Overview', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                Text('Live reports & danger zones', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          ],
         ),
+        const SizedBox(height: 12),
         const Divider(height: 1),
         if (hotspots.isNotEmpty) ...[
-          ListTile(
-            leading: const Icon(Icons.shield, color: Colors.redAccent),
-            title: const Text('High-Risk Zones'),
-            subtitle: Text('Core ${_formatRadius(
-                _coreRadiusMeters)} • Caution ${_formatRadius(
-                _cautionRadiusMeters)}'),
+          const SizedBox(height: 12),
+          Text(
+            'HIGH-RISK ZONES (${hotspots.length})',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Colors.red),
           ),
-          ...hotspots.map((hotspot) =>
-              ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.red.shade700,
-                  foregroundColor: Colors.white,
-                  child: Text(hotspot.alerts.length.toString()),
+          const SizedBox(height: 6),
+          ...hotspots.map((hotspot) => Card(
+                elevation: 0,
+                color: const Color(0xFFFEF2F2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: Colors.red.shade200),
                 ),
-                title: Text('Cluster of ${hotspot.alerts.length} alerts'),
-                subtitle: Text('Tap to focus • Center ${_formatCoordinate(
-                    hotspot.latitude, hotspot.longitude)}'),
-                onTap: () {
-                  if (scrollController != null) Navigator.pop(context);
-                  _animateToLocation(hotspot.latitude, hotspot.longitude, 14);
-                },
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.red.shade700,
+                    foregroundColor: Colors.white,
+                    child: Text(hotspot.alerts.length.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  title: Text('Cluster of ${hotspot.alerts.length} SOS Alerts', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  subtitle: Text('Tap to focus • Center ${_formatCoordinate(hotspot.latitude, hotspot.longitude)}', style: const TextStyle(fontSize: 12)),
+                  onTap: () {
+                    if (scrollController != null) Navigator.pop(context);
+                    _animateToLocation(hotspot.latitude, hotspot.longitude, 14);
+                  },
+                ),
               )),
+          const SizedBox(height: 12),
           const Divider(height: 1),
-        ] else
-          const ListTile(
-            title: Text('No high-risk zones detected yet'),
-            subtitle: Text(
-                'Zones appear automatically after three nearby alerts.'),
-          ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('All Alerts',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ],
+        const SizedBox(height: 12),
+        Text(
+          'ALL INCIDENT REPORTS (${alerts.length})',
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Color(0xFF64748B)),
         ),
+        const SizedBox(height: 6),
         if (alerts.isEmpty)
-          const ListTile(
-            title: Text('No SOS alerts yet'),
-            subtitle: Text('Press the SOS button to send a live alert.'),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: Text('No SOS alerts active at this moment.')),
           )
         else
-          ...alerts.map((alert) =>
-              ListTile(
-                leading: Icon(
-                  FontAwesomeIcons.triangleExclamation,
-                  color: alert.isDemo ? Colors.orangeAccent : Colors.red,
+          ...alerts.map((alert) => Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: Colors.grey.shade200),
                 ),
-                title: Text(alert.title),
-                subtitle: Text(
-                    '${_formatTimestamp(alert.timestamp)} • ${alert.isDemo
-                        ? 'Demo data'
-                        : 'Live data'}'),
-                trailing: Text(
-                    _formatCoordinate(alert.latitude, alert.longitude)),
-                onTap: () {
-                  if (scrollController != null) Navigator.pop(context);
-                  _animateToLocation(alert.latitude, alert.longitude, 15);
-                },
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: alert.isDemo ? Colors.orange.shade50 : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.location_on_rounded,
+                      color: alert.isDemo ? Colors.orange : Colors.red,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(alert.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  subtitle: Text(
+                    '${_formatTimestamp(alert.timestamp)} • ${alert.isDemo ? "Simulated" : "Live User GPS"}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                  onTap: () {
+                    if (scrollController != null) Navigator.pop(context);
+                    _animateToLocation(alert.latitude, alert.longitude, 15);
+                  },
+                ),
               )),
       ],
     );
@@ -687,17 +754,27 @@ class _RoundIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Material(
+    return Container(
+      decoration: BoxDecoration(
         color: Colors.white,
-        elevation: 2,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
+          borderRadius: BorderRadius.circular(24),
           onTap: onPressed,
           child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(icon, size: 22, color: Colors.black87),
+            width: 42,
+            height: 42,
+            child: Icon(icon, size: 20, color: const Color(0xFF0F172A)),
           ),
         ),
       ),

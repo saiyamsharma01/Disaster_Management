@@ -61,7 +61,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
             onPressed: () async {
               Navigator.pop(ctx);
               await AuthService.instance.signOut();
-              if (!mounted) return;
+              if (!context.mounted) return;
               while (GoRouter.of(context).canPop()) {
                 GoRouter.of(context).pop();
               }
@@ -377,7 +377,6 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
             ),
           );
         } else {
-          // Allow quitting
           Navigator.of(context).pop();
         }
       },
@@ -618,12 +617,6 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 8,
-                            ),
-                          ],
                         ),
                         child: const Icon(
                           LucideIcons.alertOctagon,
@@ -699,7 +692,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
 
               const SizedBox(height: 22),
 
-              // Section Heading: Disaster Services
+              // Section Heading
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -724,7 +717,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
 
               const SizedBox(height: 14),
 
-              // Responsive Feature Grid
+              // Service Grid
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -736,7 +729,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                   // 1. Flood Alerts
                   _buildServiceCard(
                     title: t.floodAlerts,
-                    subtitle: 'Water levels & flood alerts',
+                    subtitle: 'Water levels & gauges',
                     icon: FontAwesomeIcons.water,
                     gradientColors: const [
                       Color(0xFF0284C7),
@@ -749,7 +742,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                   // 2. Earthquake Alerts
                   _buildServiceCard(
                     title: 'Earthquake Alerts',
-                    subtitle: 'Real-time seismic monitor',
+                    subtitle: 'Real-time seismic feed',
                     icon: FontAwesomeIcons.volcano,
                     gradientColors: const [
                       Color(0xFFEA580C),
@@ -762,7 +755,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                   // 3. Nearby Shelters
                   _buildServiceCard(
                     title: t.nearbyShelters,
-                    subtitle: 'Find relief camps & beds',
+                    subtitle: 'Relief camps & beds',
                     icon: FontAwesomeIcons.tent,
                     gradientColors: const [
                       Color(0xFF059669),
@@ -775,7 +768,7 @@ class _DashboardPageNeedyState extends State<DashboardPageNeedy> {
                   // 4. Ask For Support
                   _buildServiceCard(
                     title: t.askForSupport,
-                    subtitle: 'Food, medical & rescue aid',
+                    subtitle: 'Food, medical & aid',
                     icon: Icons.volunteer_activism_rounded,
                     gradientColors: const [
                       Color(0xFF0D9488),

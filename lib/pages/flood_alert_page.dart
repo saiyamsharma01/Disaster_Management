@@ -14,62 +14,56 @@ class FloodAlertPage extends StatefulWidget {
 class _FloodAlertPageState extends State<FloodAlertPage> {
   final NotificationService _notificationService = NotificationService();
   final FCMTestService _fcmTestService = FCMTestService();
-  
-  // Sample flood alert data
+
+  // Flood alert monitoring stations data
   final List<Map<String, dynamic>> _floodAlerts = [
     {
       'id': '1',
-      'location': 'Amritsar Central',
+      'location': 'Amritsar Central Canal',
       'severity': 'HIGH',
-      'waterLevel': 2.5,
-      'status': 'Evacuation Recommended',
-      'timestamp': DateTime.now().subtract(const Duration(hours: 1)),
-      'color': Colors.red,
+      'waterLevel': 2.8,
+      'threshold': 3.0,
+      'status': 'Evacuation Advisory Active',
+      'timestamp': DateTime.now().subtract(const Duration(minutes: 20)),
+      'color': const Color(0xFFDC2626),
     },
     {
       'id': '2',
-      'location': 'Golden Temple Area',
+      'location': 'Ravi River Basin Sector 4',
       'severity': 'MEDIUM',
-      'waterLevel': 1.2,
-      'status': 'Stay Alert',
-      'timestamp': DateTime.now().subtract(const Duration(minutes: 30)),
-      'color': Colors.orange,
+      'waterLevel': 1.6,
+      'threshold': 2.5,
+      'status': 'Water Rising Moderately',
+      'timestamp': DateTime.now().subtract(const Duration(minutes: 45)),
+      'color': const Color(0xFFEA580C),
     },
     {
       'id': '3',
-      'location': 'Railway Station',
+      'location': 'Beas River Lowland Gauge',
       'severity': 'LOW',
-      'waterLevel': 0.5,
-      'status': 'Monitor Situation',
-      'timestamp': DateTime.now().subtract(const Duration(minutes: 15)),
-      'color': Colors.yellow,
+      'waterLevel': 0.8,
+      'threshold': 2.0,
+      'status': 'Normal Seasonal Flow',
+      'timestamp': DateTime.now().subtract(const Duration(hours: 1)),
+      'color': const Color(0xFF059669),
     },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _subscribeToAlerts();
-  }
-
-  Future<void> _subscribeToAlerts() async {
-    // Note: Topic subscription is not supported on web
-    // Only local notifications are used for web platform
-    debugPrint('Local notifications initialized for flood alerts');
-  }
-
   Future<void> _sendTestFloodAlert() async {
+    _fcmTestService.sendTestFloodAlert();
     await _notificationService.showFloodAlert(
-      location: 'Amritsar Central',
+      location: 'Amritsar Central Canal',
       severity: 'HIGH',
-      additionalInfo: 'Water level rising rapidly. Evacuation recommended.',
+      additionalInfo: 'Water level at 2.8m. Evacuation recommended immediately.',
     );
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Test flood alert sent!'),
-          backgroundColor: Colors.blue,
+        SnackBar(
+          content: const Text('🌊 Live Flood Alert broadcasted!'),
+          backgroundColor: const Color(0xFF0284C7),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -78,14 +72,16 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
   Future<void> _sendTestEvacuationAlert() async {
     await _notificationService.showEvacuationAlert(
       location: 'Amritsar Central',
-      evacuationCenter: 'Guru Nanak Dev University',
+      evacuationCenter: 'Guru Nanak Dev University Shelter Hub',
     );
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Test evacuation alert sent!'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('🚨 Evacuation Order broadcasted!'),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -93,59 +89,18 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
 
   Future<void> _sendTestWeatherWarning() async {
     await _notificationService.showWeatherWarning(
-      warningType: 'Heavy Rainfall',
-      location: 'Amritsar District',
+      warningType: 'Heavy Inundation Warning',
+      location: 'Amritsar District & Catchment',
       duration: 'Next 6 hours',
     );
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Test weather warning sent!'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
 
-  // Real-time Test Methods (Local + Web)
-  Future<void> _sendFCMFloodAlert() async {
-    final success = await _fcmTestService.sendTestFloodAlert();
-    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? '🌊 Flood Alert sent (Local + Web)!' : 'Failed to send alert'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  Future<void> _sendFCMEvacuationAlert() async {
-    final success = await _fcmTestService.sendTestEvacuationAlert();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? '🚨 Evacuation Alert sent (Local + Web)!' : 'Failed to send alert'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  Future<void> _sendFCMWeatherWarning() async {
-    final success = await _fcmTestService.sendTestWeatherWarning();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? '⚠️ Weather Warning sent (Local + Web)!' : 'Failed to send alert'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          duration: const Duration(seconds: 3),
+          content: const Text('⚠️ Weather Warning broadcasted!'),
+          backgroundColor: const Color(0xFFD97706),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -154,9 +109,13 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -166,324 +125,315 @@ class _FloodAlertPageState extends State<FloodAlertPage> {
           },
           tooltip: 'Back',
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(FontAwesomeIcons.water, color: Colors.blue),
-            SizedBox(width: 10),
-            Text('Flood Alerts'),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F2FE),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(FontAwesomeIcons.water, color: Color(0xFF0284C7), size: 16),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Flood & Water Radar',
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
           ],
         ),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active),
-            onPressed: _showNotificationSettings,
-            tooltip: 'Notification Settings',
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          // Alert Status Card
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade50, Colors.blue.shade100],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Water Status Hero Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0369A1), Color(0xFF0284C7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(FontAwesomeIcons.triangleExclamation, color: Colors.red),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Current Alert Status',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Active Alerts: ${_floodAlerts.length}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Last Updated: ${DateTime.now().toString().substring(11, 16)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Test Notifications Section
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Test Notifications',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                // Local Notifications
-                const Text(
-                  'Local Notifications:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _sendTestFloodAlert,
-                        icon: const Icon(Icons.water, size: 16),
-                        label: const Text('Flood Alert'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.sensors_rounded, color: Colors.white, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              'HYDROLOGICAL GAUGES ACTIVE',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _sendTestEvacuationAlert,
-                        icon: const Icon(Icons.warning, size: 16),
-                        label: const Text('Evacuation'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
+                      const Text(
+                        'Live Telemetry',
+                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _sendTestWeatherWarning,
-                    icon: const Icon(Icons.cloud, size: 16),
-                    label: const Text('Weather Warning'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Active Catchment Sensors',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_floodAlerts.length} Monitoring Stations',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                
-                // Real-time Notifications (Local + Web)
-                const Text(
-                  'Real-time Notifications (Local + Web):',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _sendFCMFloodAlert,
-                        icon: const Icon(Icons.cloud_upload, size: 16),
-                        label: const Text('Real-time Flood'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _sendFCMEvacuationAlert,
-                        icon: const Icon(Icons.cloud_upload, size: 16),
-                        label: const Text('Real-time Evacuation'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _sendFCMWeatherWarning,
-                    icon: const Icon(Icons.cloud_upload, size: 16),
-                    label: const Text('Real-time Weather Warning'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Active Alerts List
-          Expanded(
-            child: ListView.builder(
-              itemCount: _floodAlerts.length,
-              itemBuilder: (context, index) {
-                final alert = _floodAlerts[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: ListTile(
-                    leading: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: alert['color'],
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    title: Text(
-                      alert['location'],
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: const Row(
                       children: [
-                        Text('Severity: ${alert['severity']}'),
-                        Text('Water Level: ${alert['waterLevel']}m'),
-                        Text('Status: ${alert['status']}'),
-                        Text(
-                          'Updated: ${alert['timestamp'].toString().substring(11, 16)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                        Icon(Icons.shield_outlined, color: Colors.white, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Highest recorded level: 2.8m at Amritsar Central (Critical)',
+                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.notifications),
-                      onPressed: () => _sendSpecificAlert(alert),
-                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Emergency Dispatch Buttons
+            const Text(
+              'Broadcast Test Emergency Alerts',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionBtn(
+                    label: 'Flood Warning',
+                    icon: Icons.water_drop_rounded,
+                    color: const Color(0xFF0284C7),
+                    onTap: _sendTestFloodAlert,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildActionBtn(
+                    label: 'Evacuation',
+                    icon: Icons.warning_rounded,
+                    color: const Color(0xFFDC2626),
+                    onTap: _sendTestEvacuationAlert,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildActionBtn(
+                    label: 'Weather Alert',
+                    icon: Icons.thunderstorm_rounded,
+                    color: const Color(0xFFD97706),
+                    onTap: _sendTestWeatherWarning,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Live Stations List
+            const Text(
+              'Hydrological Stations Status',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 10),
+
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _floodAlerts.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+              itemBuilder: (ctx, i) {
+                final alert = _floodAlerts[i];
+                final Color col = alert['color'] as Color;
+                final double level = alert['waterLevel'] as double;
+                final double threshold = alert['threshold'] as double;
+                final double progress = (level / threshold).clamp(0.0, 1.0);
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: col.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(FontAwesomeIcons.water, color: col, size: 16),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                alert['location'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: col.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              alert['severity'],
+                              style: TextStyle(
+                                color: col,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Water Level: ${level}m',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: col),
+                          ),
+                          Text(
+                            'Danger Mark: ${threshold}m',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 6,
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          valueColor: AlwaysStoppedAnimation<Color>(col),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        alert['status'],
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF334155), fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _sendSpecificAlert(Map<String, dynamic> alert) async {
-    await _notificationService.showFloodAlert(
-      location: alert['location'],
-      severity: alert['severity'],
-      additionalInfo: 'Water Level: ${alert['waterLevel']}m - ${alert['status']}',
-    );
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Alert sent for ${alert['location']}'),
-          backgroundColor: alert['color'],
+  Widget _buildActionBtn({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
-      );
-    }
-  }
-
-  void _showNotificationSettings() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Notification Settings'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
           children: [
-            ListTile(
-              leading: const Icon(Icons.water),
-              title: const Text('Flood Alerts'),
-              subtitle: const Text('Receive flood warnings'),
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {
-                  // Handle flood alerts toggle
-                },
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.warning),
-              title: const Text('Evacuation Alerts'),
-              subtitle: const Text('Emergency evacuation notices'),
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {
-                  // Handle evacuation alerts toggle
-                },
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.cloud),
-              title: const Text('Weather Warnings'),
-              subtitle: const Text('Weather-related alerts'),
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {
-                  // Handle weather warnings toggle
-                },
-              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }

@@ -61,6 +61,11 @@ class EarthquakeData {
 }
 
 class EarthquakeService {
+  // In-memory cache to prevent repeated multi-megabyte downloads and UI lag
+  static final Map<String, List<EarthquakeData>> _cache = {};
+  static final Map<String, DateTime> _cacheTimestamps = {};
+  static const Duration _cacheDuration = Duration(minutes: 3);
+
   // Different time ranges for earthquake data
   static const String allDayUrl =
       'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
@@ -71,11 +76,20 @@ class EarthquakeService {
   static const String magnitude4_5WeekUrl =
       'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson';
 
-  /// Fetches earthquake data from USGS API
-  Future<List<EarthquakeData>> getEarthquakeData(
-      {String timeRange = 'day'}) async {
-    String url = allDayUrl;
+  /// Fetches earthquake data from USGS API with smart in-memory caching
+  Future<List<EarthquakeData>> getEarthquakeData({
+    String timeRange = 'day',
+    bool forceRefresh = false,
+  }) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cache.containsKey(timeRange) &&
+        _cacheTimestamps.containsKey(timeRange) &&
+        now.difference(_cacheTimestamps[timeRange]!) < _cacheDuration) {
+      return _cache[timeRange]!;
+    }
 
+    String url = allDayUrl;
     switch (timeRange) {
       case 'week':
         url = allWeekUrl;
@@ -91,21 +105,33 @@ class EarthquakeService {
     }
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(
+        const Duration(seconds: 10),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final features = data['features'] as List;
 
-        return features
+        final list = features
             .map((quake) => EarthquakeData.fromJson(quake))
             .toList()
-          ..sort((a, b) => b.time.compareTo(a.time)); // Sort by most recent
+          ..sort((a, b) => b.time.compareTo(a.time));
+
+        _cache[timeRange] = list;
+        _cacheTimestamps[timeRange] = now;
+        return list;
       } else {
+        if (_cache.containsKey(timeRange)) {
+          return _cache[timeRange]!;
+        }
         throw Exception(
             'Failed to fetch earthquake data: ${response.statusCode}');
       }
     } catch (e) {
+      if (_cache.containsKey(timeRange)) {
+        return _cache[timeRange]!;
+      }
       throw Exception('Error fetching earthquake data: $e');
     }
   }

@@ -23,24 +23,24 @@ class _ReportMapPageState extends State<ReportMapPage> {
       case 1:
         return 'Emergency Reports Map';
       case 2:
-        return 'Food/Shelter Reports Map';
+        return 'Food & Shelter Needs';
       case 3:
-        return 'Volunteer Reports Map';
+        return 'Volunteer Deployment Map';
       default:
-        return 'Reports Map';
+        return 'Relief Crisis Map';
     }
   }
 
   Color get _accent {
     switch (widget.choice) {
       case 1:
-        return Colors.red;
+        return const Color(0xFFDC2626);
       case 2:
-        return Colors.orange;
+        return const Color(0xFFD97706);
       case 3:
-        return Colors.green;
+        return const Color(0xFF059669);
       default:
-        return Colors.blueGrey;
+        return const Color(0xFF4F46E5);
     }
   }
 
@@ -53,19 +53,22 @@ class _ReportMapPageState extends State<ReportMapPage> {
       case 3:
         return FontAwesomeIcons.userGroup;
       default:
-        return FontAwesomeIcons.map;
+        return FontAwesomeIcons.mapLocationDot;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Create dummy data based on choice
     final dummyData = _createDummyData();
-    
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -77,88 +80,116 @@ class _ReportMapPageState extends State<ReportMapPage> {
         ),
         title: Row(
           children: [
-            Icon(_icon, color: _accent),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(_icon, color: _accent, size: 16),
+            ),
             const SizedBox(width: 10),
-            Text(_title),
+            Expanded(
+              child: Text(
+                _title,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
       body: Stack(
         children: [
           // Map
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: LatLng(_centerLat, _centerLng),
-              initialZoom: 13.0,
-              minZoom: 3.0,
-              maxZoom: 18.0,
+          RepaintBoundary(
+            child: FlutterMap(
+              mapController: _mapController,
+              options: const MapOptions(
+                initialCenter: LatLng(_centerLat, _centerLng),
+                initialZoom: 13.5,
+                minZoom: 3.0,
+                maxZoom: 18.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.sahaaya',
+                ),
+                MarkerLayer(
+                  markers: dummyData
+                      .map((data) => Marker(
+                            point: LatLng(data['lat'] as double, data['lng'] as double),
+                            width: 40,
+                            height: 40,
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: _accent,
+                              size: 38,
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ],
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: ['a', 'b', 'c'],
-                userAgentPackageName: 'com.example.sahaaya',
-              ),
-              MarkerLayer(
-                markers: dummyData.map((data) =>
-                    Marker(
-                      point: LatLng(data['lat'], data['lng']),
-                      width: 40,
-                      height: 40,
-                      child: Icon(
-                        Icons.location_on,
-                        color: _accent,
-                        size: 40,
-                      ),
-                    )).toList(),
-              ),
-            ],
           ),
-          
-          // Info panel
+
+          // Floating Summary Card
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+            top: 14,
+            left: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _accent.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_icon, color: _accent, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_icon, color: _accent, size: 20),
-                        const SizedBox(width: 8),
                         Text(
                           _title,
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
                           ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${dummyData.length} Active Verified Reports in Sector',
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total Reports: ${dummyData.length}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Latest: ${dummyData.isNotEmpty ? dummyData.first['time'] : 'No reports'}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -168,46 +199,19 @@ class _ReportMapPageState extends State<ReportMapPage> {
   }
 
   List<Map<String, dynamic>> _createDummyData() {
-    // Create different amounts of dummy data based on choice
-    int count = 0;
-    switch (widget.choice) {
-      case 1: // Emergency
-        count = 3;
-        break;
-      case 2: // Food/Shelter
-        count = 5;
-        break;
-      case 3: // Volunteer
-        count = 2;
-        break;
-      default:
-        count = 1;
-    }
-    
-    List<Map<String, dynamic>> dummyData = [];
+    int count = 4;
+    if (widget.choice == 1) count = 3;
+    if (widget.choice == 2) count = 5;
+    if (widget.choice == 3) count = 3;
+
+    final List<Map<String, dynamic>> list = [];
     for (int i = 0; i < count; i++) {
-      dummyData.add({
-        'lat': _centerLat + (i % 3 - 1) * 0.01,
-        // Spread around
-        'lng': _centerLng + (i % 2) * 0.01,
-        'time': '${DateTime.now().day}/${DateTime.now().month} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-        'title': _getDummyTitle(i),
+      list.add({
+        'lat': _centerLat + (i % 3 - 1) * 0.012,
+        'lng': _centerLng + (i % 2 == 0 ? 0.01 : -0.01),
+        'title': 'Report #${i + 1}',
       });
     }
-    
-    return dummyData;
-  }
-
-  String _getDummyTitle(int index) {
-    switch (widget.choice) {
-      case 1: // Emergency
-        return 'Emergency Report ${index + 1}';
-      case 2: // Food/Shelter
-        return 'Food/Shelter Need ${index + 1}';
-      case 3: // Volunteer
-        return 'Volunteer Request ${index + 1}';
-      default:
-        return 'Report ${index + 1}';
-    }
+    return list;
   }
 }

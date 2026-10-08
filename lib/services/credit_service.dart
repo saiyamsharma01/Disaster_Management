@@ -10,8 +10,14 @@ class CreditService {
   static const int emergencyReportCredit = 5;   // When user selects option 1 (emergency)
   static const int foodShelterCredit = 3;       // When user selects option 2 (food/shelter)
   
-  // Get current user's credit balance
-  static Future<int> getUserCredits(String userId) async {
+  // In-memory cache for fast UI access
+  static final Map<String, int> _creditCache = {};
+
+  // Get current user's credit balance with fast cache
+  static Future<int> getUserCredits(String userId, {bool forceRefresh = false}) async {
+    if (!forceRefresh && _creditCache.containsKey(userId)) {
+      return _creditCache[userId]!;
+    }
     try {
       final doc = await FirebaseFirestore.instance
           .collection(_creditsCollection)
@@ -19,18 +25,21 @@ class CreditService {
           .get();
       
       if (doc.exists) {
-        return doc.data()?['balance'] ?? 0;
+        final balance = doc.data()?['balance'] ?? 0;
+        _creditCache[userId] = balance;
+        return balance;
       } else {
         // Create new credit account for user
         await FirebaseFirestore.instance
             .collection(_creditsCollection)
             .doc(userId)
             .set({'balance': 0, 'createdAt': FieldValue.serverTimestamp()});
+        _creditCache[userId] = 0;
         return 0;
       }
     } catch (e) {
       debugPrint('Error getting user credits: $e');
-      return 0;
+      return _creditCache[userId] ?? 0;
     }
   }
   
@@ -79,6 +88,10 @@ class CreditService {
           'type': 'earned',
         });
         
+        if (_creditCache.containsKey(userId)) {
+          _creditCache[userId] = (_creditCache[userId] ?? 0) + creditAmount;
+        }
+        
         return true;
       }
       return false;
@@ -123,6 +136,10 @@ class CreditService {
         'balance': FieldValue.increment(-amount),
         'lastUpdated': FieldValue.serverTimestamp(),
       });
+      
+      if (_creditCache.containsKey(userId)) {
+        _creditCache[userId] = (_creditCache[userId] ?? 0) - amount;
+      }
       
       // Record transaction
       await FirebaseFirestore.instance

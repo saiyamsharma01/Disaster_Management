@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -18,11 +17,41 @@ import 'pages/earthquake_map_page.dart';
 import 'pages/login_page.dart';
 import 'pages/signup_page.dart';
 
+/// Ultra-fast custom page transition for smooth, instantaneous route switching
+CustomTransitionPage<void> _buildSmoothPage(
+  BuildContext context,
+  GoRouterState state,
+  Widget child,
+) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 160),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curved),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.04, 0.0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 GoRouter createRouter() {
   return GoRouter(
     observers: [NavigatorObserver()],
     redirect: (context, state) {
-      // Requires Firebase to be initialized before calling createRouter()
       final loggedIn = FirebaseAuth.instance.currentUser != null;
       final loggingIn =
           state.fullPath == '/login' || state.fullPath == '/signup';
@@ -41,77 +70,80 @@ GoRouter createRouter() {
       FirebaseAuth.instance.authStateChanges(),
     ),
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SplashPage()),
+      ),
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const LoginPage()),
       ),
       GoRoute(
         path: '/signup',
         name: 'signup',
-        builder: (context, state) => const SignupPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SignupPage()),
       ),
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
-        builder: (context, state) => const DashboardPageNeedy(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const DashboardPageNeedy()),
       ),
       GoRoute(
         path: '/sos_page',
         name: 'sos_page',
-        builder: (context, state) => const SosPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SosPage()),
       ),
       GoRoute(
         path: '/nearby_shelters',
         name: 'nearby_shelters',
-        builder: (context, state) => const NearbyShelterPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const NearbyShelterPage()),
       ),
       GoRoute(
         path: '/ivr_demo',
         name: 'ivr_demo',
-        builder: (context, state) => const IVRDemoPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const IVRDemoPage()),
       ),
       GoRoute(
         path: '/ivr_outcome/:choice',
         name: 'ivr_outcome',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final choice = int.tryParse(state.pathParameters['choice'] ?? '0') ?? 0;
-          return IVROutcomePage(choice: choice);
+          return _buildSmoothPage(context, state, IVROutcomePage(choice: choice));
         },
       ),
       GoRoute(
         path: '/needy_view',
         name: 'needy_view',
-        builder: (context, state) => const NeedyViewPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const NeedyViewPage()),
       ),
       GoRoute(
         path: '/report_map/:choice',
         name: 'report_map',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final choice = int.tryParse(state.pathParameters['choice'] ?? '0') ?? 0;
-          return ReportMapPage(choice: choice);
+          return _buildSmoothPage(context, state, ReportMapPage(choice: choice));
         },
       ),
       GoRoute(
         path: '/chatbot_care',
         name: 'chatbot_care',
-        builder: (context, state) => const ChatbotCarePage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const ChatbotCarePage()),
       ),
       GoRoute(
         path: '/flood_alerts',
         name: 'flood_alerts',
-        builder: (context, state) => const FloodAlertPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const FloodAlertPage()),
       ),
       GoRoute(
         path: '/earthquake_alerts',
         name: 'earthquake_alerts',
-        builder: (context, state) => const EarthquakeAlertPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const EarthquakeAlertPage()),
       ),
       GoRoute(
         path: '/earthquake_map',
         name: 'earthquake_map',
-        builder: (context, state) => const EarthquakeMapPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const EarthquakeMapPage()),
       ),
     ],
   );
@@ -121,77 +153,80 @@ GoRouter createRouterWithoutAuth() {
   return GoRouter(
     observers: [NavigatorObserver()],
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SplashPage()),
+      ),
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const LoginPage()),
       ),
       GoRoute(
         path: '/signup',
         name: 'signup',
-        builder: (context, state) => const SignupPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SignupPage()),
       ),
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
-        builder: (context, state) => const DashboardPageNeedy(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const DashboardPageNeedy()),
       ),
       GoRoute(
         path: '/sos_page',
         name: 'sos_page',
-        builder: (context, state) => const SosPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const SosPage()),
       ),
       GoRoute(
         path: '/nearby_shelters',
         name: 'nearby_shelters',
-        builder: (context, state) => const NearbyShelterPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const NearbyShelterPage()),
       ),
       GoRoute(
         path: '/ivr_demo',
         name: 'ivr_demo',
-        builder: (context, state) => const IVRDemoPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const IVRDemoPage()),
       ),
       GoRoute(
         path: '/ivr_outcome/:choice',
         name: 'ivr_outcome',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final choice = int.tryParse(state.pathParameters['choice'] ?? '0') ?? 0;
-          return IVROutcomePage(choice: choice);
+          return _buildSmoothPage(context, state, IVROutcomePage(choice: choice));
         },
       ),
       GoRoute(
         path: '/needy_view',
         name: 'needy_view',
-        builder: (context, state) => const NeedyViewPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const NeedyViewPage()),
       ),
       GoRoute(
         path: '/report_map/:choice',
         name: 'report_map',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final choice = int.tryParse(state.pathParameters['choice'] ?? '0') ?? 0;
-          return ReportMapPage(choice: choice);
+          return _buildSmoothPage(context, state, ReportMapPage(choice: choice));
         },
       ),
       GoRoute(
         path: '/chatbot_care',
         name: 'chatbot_care',
-        builder: (context, state) => const ChatbotCarePage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const ChatbotCarePage()),
       ),
       GoRoute(
         path: '/flood_alerts',
         name: 'flood_alerts',
-        builder: (context, state) => const FloodAlertPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const FloodAlertPage()),
       ),
       GoRoute(
         path: '/earthquake_alerts',
         name: 'earthquake_alerts',
-        builder: (context, state) => const EarthquakeAlertPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const EarthquakeAlertPage()),
       ),
       GoRoute(
         path: '/earthquake_map',
         name: 'earthquake_map',
-        builder: (context, state) => const EarthquakeMapPage(),
+        pageBuilder: (context, state) => _buildSmoothPage(context, state, const EarthquakeMapPage()),
       ),
     ],
   );

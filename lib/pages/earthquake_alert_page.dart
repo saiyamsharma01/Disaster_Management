@@ -26,7 +26,7 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
     _loadEarthquakeData();
   }
 
-  Future<void> _loadEarthquakeData() async {
+  Future<void> _loadEarthquakeData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -35,32 +35,37 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
     try {
       final earthquakes = await _earthquakeService.getEarthquakeData(
         timeRange: _selectedTimeRange,
+        forceRefresh: forceRefresh,
       );
 
-      setState(() {
-        _earthquakes = earthquakes;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _earthquakes = earthquakes;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Color _getSeverityColor(String severity) {
     switch (severity) {
       case 'SEVERE':
-        return Colors.red.shade900;
+        return const Color(0xFF991B1B);
       case 'HIGH':
-        return Colors.red;
+        return const Color(0xFFDC2626);
       case 'MODERATE':
-        return Colors.orange;
+        return const Color(0xFFEA580C);
       case 'MEDIUM':
-        return Colors.yellow.shade700;
+        return const Color(0xFFD97706);
       default:
-        return Colors.green;
+        return const Color(0xFF059669);
     }
   }
 
@@ -78,9 +83,8 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
 
   Future<void> _sendEarthquakeNotification(EarthquakeData earthquake) async {
     await _notificationService.showLocalNotification(
-      title: 'Earthquake Alert',
-      body: '${earthquake.location}\nMagnitude: ${earthquake.magnitude
-          .toStringAsFixed(1)} - ${earthquake.severityLevel}',
+      title: 'Earthquake Alert · M${earthquake.magnitude.toStringAsFixed(1)}',
+      body: '${earthquake.location}\nSeverity: ${earthquake.severityLevel}',
     );
 
     if (mounted) {
@@ -88,6 +92,8 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
         SnackBar(
           content: Text('Alert sent for ${earthquake.location}'),
           backgroundColor: _getSeverityColor(earthquake.severityLevel),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -100,9 +106,13 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
         .length;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -112,120 +122,169 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
           },
           tooltip: 'Back',
         ),
-        title: const Text('Earthquake Alerts'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(FontAwesomeIcons.volcano, color: Color(0xFFEA580C), size: 16),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Earthquake Monitor',
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.map),
-            onPressed: () {
-              context.pushNamed('earthquake_map');
-            },
-            tooltip: 'View Map',
+            icon: const Icon(Icons.map_rounded, color: Color(0xFFEA580C)),
+            onPressed: () => context.pushNamed('earthquake_map'),
+            tooltip: 'Live Seismic Map',
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadEarthquakeData,
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+            onPressed: () => _loadEarthquakeData(forceRefresh: true),
             tooltip: 'Refresh',
           ),
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list_rounded, color: Color(0xFF64748B)),
             onPressed: _showFilterDialog,
-            tooltip: 'Filter',
+            tooltip: 'Filter Range',
           ),
+          const SizedBox(width: 6),
         ],
       ),
       body: Column(
         children: [
-          // Status Card
+          // Live Seismic Metric Header
           Container(
             width: double.infinity,
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red.shade50, Colors.red.shade100],
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.shade200),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(FontAwesomeIcons.globe, color: Colors.red.shade700),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Live Earthquake Data',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'USGS GLOBAL SEISMIC FEED',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: Color(0xFFF97316),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      _getTimeRangeLabel(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Total Events: ${_earthquakes.length}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'High Severity: $highSeverityCount',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: highSeverityCount > 0 ? Colors.red.shade700 : Colors
-                        .grey[700],
-                    fontWeight: highSeverityCount > 0
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Time Range: ${_getTimeRangeLabel()}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Data Source: USGS',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_earthquakes.length}',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Text(
+                          'Seismic Events',
+                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                    Container(width: 1, height: 36, color: Colors.white24),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$highSeverityCount',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: highSeverityCount > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                          ),
+                        ),
+                        const Text(
+                          'High / Severe (M5+)',
+                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Error Message
+          // Error banner
           if (_errorMessage != null)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECDD3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: Colors.red.shade700),
+                      style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
                     ),
                   ),
                 ],
@@ -236,14 +295,7 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
           if (_isLoading)
             const Expanded(
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading earthquake data...'),
-                  ],
-                ),
+                child: CircularProgressIndicator(color: Color(0xFFEA580C)),
               ),
             ),
 
@@ -251,140 +303,85 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
           if (!_isLoading && _earthquakes.isNotEmpty)
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _loadEarthquakeData,
+                onRefresh: () => _loadEarthquakeData(forceRefresh: true),
+                color: const Color(0xFFEA580C),
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: _earthquakes.length,
                   itemBuilder: (context, index) {
                     final earthquake = _earthquakes[index];
-                    final severityColor = _getSeverityColor(
-                        earthquake.severityLevel);
-                    final severityIcon = _getSeverityIcon(
-                        earthquake.severityLevel);
+                    final severityColor = _getSeverityColor(earthquake.severityLevel);
+                    final severityIcon = _getSeverityIcon(earthquake.severityLevel);
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      elevation: 0,
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
                       child: ExpansionTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: severityColor.withValues(alpha: 0.1),
+                            color: severityColor.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            severityIcon,
-                            color: severityColor,
-                            size: 20,
-                          ),
+                          child: Icon(severityIcon, color: severityColor, size: 18),
                         ),
                         title: Text(
                           earthquake.location,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            color: Color(0xFF0F172A),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: severityColor,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'M ${earthquake.magnitude.toStringAsFixed(
-                                        1)}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: severityColor,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'M ${earthquake.magnitude.toStringAsFixed(1)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10.5,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  earthquake.severityLevel,
-                                  style: TextStyle(
-                                    color: severityColor,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              earthquake.timeAgo,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Text(
+                                earthquake.timeAgo,
+                                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.notifications_active),
-                          onPressed: () =>
-                              _sendEarthquakeNotification(earthquake),
+                          icon: const Icon(Icons.notifications_active_rounded, size: 20),
+                          onPressed: () => _sendEarthquakeNotification(earthquake),
                           tooltip: 'Send Alert',
                         ),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildDetailRow(
-                                  'Time',
-                                  earthquake.time.toString().substring(0, 19),
-                                  Icons.access_time,
-                                ),
+                                _buildDetailRow('Time', earthquake.time.toString().substring(0, 19), Icons.access_time_rounded),
                                 const SizedBox(height: 8),
-                                _buildDetailRow(
-                                  'Depth',
-                                  '${earthquake.depth.toStringAsFixed(1)} km',
-                                  Icons.arrow_downward,
-                                ),
+                                _buildDetailRow('Depth', '${earthquake.depth.toStringAsFixed(1)} km', Icons.arrow_downward_rounded),
                                 const SizedBox(height: 8),
-                                _buildDetailRow(
-                                  'Coordinates',
-                                  '${earthquake.latitude.toStringAsFixed(
-                                      4)}, ${earthquake.longitude
-                                      .toStringAsFixed(4)}',
-                                  Icons.location_on,
-                                ),
-                                if (earthquake.tsunami != null) ...[
-                                  const SizedBox(height: 8),
-                                  _buildDetailRow(
-                                    'Tsunami',
-                                    earthquake.tsunami == '1'
-                                        ? 'Possible'
-                                        : 'No',
-                                    Icons.waves,
-                                    color: earthquake.tsunami == '1' ? Colors
-                                        .red : Colors.green,
-                                  ),
-                                ],
-                                if (earthquake.alert != null) ...[
-                                  const SizedBox(height: 8),
-                                  _buildDetailRow(
-                                    'Alert',
-                                    earthquake.alert!.toUpperCase(),
-                                    Icons.warning,
-                                    color: Colors.orange,
-                                  ),
-                                ],
+                                _buildDetailRow('Coordinates', '${earthquake.latitude.toStringAsFixed(4)}, ${earthquake.longitude.toStringAsFixed(4)}', Icons.location_on_rounded),
                               ],
                             ),
                           ),
@@ -396,33 +393,11 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
               ),
             ),
 
-          // Empty State
+          // Empty state
           if (!_isLoading && _earthquakes.isEmpty && _errorMessage == null)
             const Expanded(
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      FontAwesomeIcons.circleCheck,
-                      size: 64,
-                      color: Colors.green,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No earthquakes detected',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'in the selected time range',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
+                child: Text('No earthquakes recorded in selected timeframe.'),
               ),
             ),
         ],
@@ -430,27 +405,19 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, IconData icon,
-      {Color? color}) {
+  Widget _buildDetailRow(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: color ?? Colors.grey[600]),
+        Icon(icon, size: 15, color: const Color(0xFF64748B)),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
-            fontSize: 13,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B), fontSize: 12),
         ),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(
-              color: color ?? Colors.grey[800],
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ),
       ],
@@ -464,7 +431,7 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
       case 'significant':
         return 'Significant (Month)';
       case 'major':
-        return 'Major (M4.5+, Week)';
+        return 'Major (M4.5+)';
       default:
         return 'Past 24 Hours';
     }
@@ -473,73 +440,45 @@ class _EarthquakeAlertPageState extends State<EarthquakeAlertPage> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: const Text('Filter Earthquakes'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RadioListTile<String>(
-                  title: const Text('Past 24 Hours'),
-                  subtitle: const Text('All earthquakes'),
-                  value: 'day',
-                  groupValue: _selectedTimeRange,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTimeRange = value!;
-                    });
-                    Navigator.pop(context);
-                    _loadEarthquakeData();
-                  },
-                ),
-                RadioListTile<String>(
-                  title: const Text('Past Week'),
-                  subtitle: const Text('All earthquakes'),
-                  value: 'week',
-                  groupValue: _selectedTimeRange,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTimeRange = value!;
-                    });
-                    Navigator.pop(context);
-                    _loadEarthquakeData();
-                  },
-                ),
-                RadioListTile<String>(
-                  title: const Text('Major Events'),
-                  subtitle: const Text('M4.5+ past week'),
-                  value: 'major',
-                  groupValue: _selectedTimeRange,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTimeRange = value!;
-                    });
-                    Navigator.pop(context);
-                    _loadEarthquakeData();
-                  },
-                ),
-                RadioListTile<String>(
-                  title: const Text('Significant Events'),
-                  subtitle: const Text('Past month'),
-                  value: 'significant',
-                  groupValue: _selectedTimeRange,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTimeRange = value!;
-                    });
-                    Navigator.pop(context);
-                    _loadEarthquakeData();
-                  },
-                ),
-              ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Filter Earthquakes', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('Past 24 Hours'),
+              value: 'day',
+              groupValue: _selectedTimeRange,
+              onChanged: (v) {
+                setState(() => _selectedTimeRange = v!);
+                Navigator.pop(context);
+                _loadEarthquakeData();
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
+            RadioListTile<String>(
+              title: const Text('Past Week'),
+              value: 'week',
+              groupValue: _selectedTimeRange,
+              onChanged: (v) {
+                setState(() => _selectedTimeRange = v!);
+                Navigator.pop(context);
+                _loadEarthquakeData();
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Major (M4.5+ Past Week)'),
+              value: 'major',
+              groupValue: _selectedTimeRange,
+              onChanged: (v) {
+                setState(() => _selectedTimeRange = v!);
+                Navigator.pop(context);
+                _loadEarthquakeData();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
