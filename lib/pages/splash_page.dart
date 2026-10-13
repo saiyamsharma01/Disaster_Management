@@ -43,6 +43,12 @@ class _SplashPageState extends State<SplashPage>
     _timer = Timer(const Duration(milliseconds: 2000), _handleNavigation);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage('assets/images/sahaaya_logo.png'), context);
+  }
+
   void _handleNavigation() {
     if (!mounted) return;
     try {
@@ -69,6 +75,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0C29),
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -126,6 +133,12 @@ class _SplashPageState extends State<SplashPage>
                                   child: Image.asset(
                                     'assets/images/sahaaya_logo.png',
                                     fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      color: const Color(0xFF4F46E5),
+                                      child: const Center(
+                                        child: Icon(Icons.shield_rounded, color: Colors.white, size: 70),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

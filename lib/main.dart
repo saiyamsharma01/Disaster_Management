@@ -46,12 +46,10 @@ Future<void> main() async {
     
     await LocaleController.initialize();
     
-    // Initialize notification service safely
-    try {
-      await NotificationService().initialize();
-    } catch (notifErr) {
+    // Initialize notification service asynchronously in background so Splash loads immediately
+    NotificationService().initialize().catchError((notifErr) {
       debugPrint('ℹ️ NotificationService initialization info: $notifErr');
-    }
+    });
     
     appRouter = createRouter();
   } catch (e) {
