@@ -110,7 +110,7 @@ class AuthService {
         credential = await _auth.signInWithCredential(authCred);
       }
 
-      if (credential != null && credential.user != null) {
+      if (credential.user != null) {
         await saveUserToFirestore(credential.user);
       }
 

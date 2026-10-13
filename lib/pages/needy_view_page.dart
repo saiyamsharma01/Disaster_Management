@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:sahaaya/services/credit_service.dart';
+import 'package:sahaaya/services/location_service.dart';
 
 class NeedyViewPage extends StatefulWidget {
   const NeedyViewPage({super.key});
@@ -31,6 +31,7 @@ class _NeedyViewPageState extends State<NeedyViewPage>
   String _urgencyLevel = 'High'; // 'Critical', 'High', 'Medium', 'Normal'
   bool _isSubmitting = false;
   bool _isLocating = false;
+  LocationResult? _detectedLocation;
 
   static const _primaryColor = Color(0xFF4F46E5);
   static const _secondaryColor = Color(0xFF7C3AED);
@@ -88,53 +89,151 @@ class _NeedyViewPageState extends State<NeedyViewPage>
   Future<void> _fetchGPSLocation() async {
     if (_isLocating) return;
     setState(() => _isLocating = true);
+
     try {
-      // 1. Try instant last known position
-      final lastPos = await geolocator.Geolocator.getLastKnownPosition();
-      if (lastPos != null && mounted) {
-        _addressController.text =
-            'Lat: ${lastPos.latitude.toStringAsFixed(4)}, Lng: ${lastPos.longitude.toStringAsFixed(4)}';
-        setState(() => _isLocating = false);
-        return;
-      }
+      final result = await LocationService.getCurrentLocation(
+        timeout: const Duration(seconds: 10),
+      );
 
-      // 2. Query current position with 4s timeout
-      geolocator.LocationPermission permission =
-          await geolocator.Geolocator.checkPermission();
-      if (permission == geolocator.LocationPermission.denied) {
-        permission = await geolocator.Geolocator.requestPermission();
-      }
+      if (mounted) {
+        setState(() {
+          _isLocating = false;
+          _detectedLocation = result;
+          _addressController.text = result.shortAddress;
+        });
 
-      if (permission == geolocator.LocationPermission.always ||
-          permission == geolocator.LocationPermission.whileInUse) {
-        final pos = await geolocator.Geolocator.getCurrentPosition(
-          locationSettings: const geolocator.LocationSettings(
-            accuracy: geolocator.LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 4),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '📍 Live location detected: ${result.shortAddress}',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 3),
           ),
         );
-        if (mounted) {
-          setState(() {
-            _addressController.text =
-                'Lat: ${pos.latitude.toStringAsFixed(4)}, Lng: ${pos.longitude.toStringAsFixed(4)}';
-            _isLocating = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('📍 GPS location detected!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        if (mounted) setState(() => _isLocating = false);
+      }
+    } on LocationServiceDisabledException {
+      if (mounted) {
+        setState(() => _isLocating = false);
+        _showEnableLocationDialog();
+      }
+    } on LocationPermissionPermanentlyDeniedException {
+      if (mounted) {
+        setState(() => _isLocating = false);
+        _showPermissionSettingsDialog();
+      }
+    } on LocationPermissionDeniedException {
+      if (mounted) {
+        setState(() => _isLocating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('⚠️ Location permission is required to detect your location.'),
+            backgroundColor: Colors.amber.shade800,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLocating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Unable to fetch location: $e'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
       }
     }
+  }
+
+  void _showEnableLocationDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.location_off_rounded, color: Color(0xFFEF4444), size: 26),
+            SizedBox(width: 10),
+            Text('Turn On GPS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Device GPS / Location Services are turned off. Please turn on location services to auto-detect your exact address.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              LocationService.openLocationSettings();
+            },
+            child: const Text('Open Settings', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPermissionSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 26),
+            SizedBox(width: 10),
+            Text('Permission Needed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Location permission is permanently denied. Please allow location access in App Settings to auto-detect your location.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              LocationService.openAppSettings();
+            },
+            child: const Text('App Settings', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submitSupportRequest() async {
@@ -151,6 +250,9 @@ class _NeedyViewPageState extends State<NeedyViewPage>
             : 'Citizen',
         'phoneNumber': _phoneController.text.trim(),
         'address': _addressController.text.trim(),
+        'latitude': _detectedLocation?.latitude,
+        'longitude': _detectedLocation?.longitude,
+        'locationDetails': _detectedLocation?.toMap(),
         'choice': _selectedCategory,
         'urgency': _urgencyLevel,
         'peopleCount': int.tryParse(_peopleCountController.text.trim()) ?? 1,
@@ -173,6 +275,8 @@ class _NeedyViewPageState extends State<NeedyViewPage>
         'userId': userId,
         'notes': _notesController.text.trim(),
         'address': _addressController.text.trim(),
+        'latitude': _detectedLocation?.latitude,
+        'longitude': _detectedLocation?.longitude,
       });
 
       // 3. Award credits
@@ -184,6 +288,8 @@ class _NeedyViewPageState extends State<NeedyViewPage>
       if (mounted) {
         setState(() => _isSubmitting = false);
         _notesController.clear();
+        _addressController.clear();
+        _detectedLocation = null;
 
         showDialog(
           context: context,
@@ -495,21 +601,170 @@ class _NeedyViewPageState extends State<NeedyViewPage>
                 'Location / Landmark / Village *',
                 Icons.location_on_outlined,
               ).copyWith(
-                suffixIcon: IconButton(
-                  icon: _isLocating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location_rounded, color: _primaryColor),
-                  tooltip: 'Get Live GPS',
-                  onPressed: _isLocating ? null : _fetchGPSLocation,
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: IconButton(
+                    icon: _isLocating
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: _primaryColor,
+                            ),
+                          )
+                        : Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: _primaryColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.my_location_rounded,
+                              color: _primaryColor,
+                              size: 20,
+                            ),
+                          ),
+                    tooltip: 'Auto-detect Live GPS Location',
+                    onPressed: _isLocating ? null : _fetchGPSLocation,
+                  ),
                 ),
               ),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Please enter your location' : null,
             ),
+
+            // Real-time locating indicator
+            if (_isLocating) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBFDBFE), width: 1.2),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '📡 Detecting GPS & resolving real-world address...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF1D4ED8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Verified Location Card
+            if (_detectedLocation != null && !_isLocating) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF86EFAC), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF16A34A).withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF16A34A),
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Live GPS Verified',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          onTap: _fetchGPSLocation,
+                          borderRadius: BorderRadius.circular(6),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: Row(
+                              children: [
+                                Icon(Icons.refresh_rounded, size: 14, color: Color(0xFF15803D)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Re-detect',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF15803D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _detectedLocation!.formattedAddress,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1E293B),
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'GPS: ${_detectedLocation!.latitude.toStringAsFixed(5)}°, ${_detectedLocation!.longitude.toStringAsFixed(5)}°'
+                      '${_detectedLocation!.accuracy != null ? " • ±${_detectedLocation!.accuracy!.toStringAsFixed(0)}m accuracy" : ""}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
 
             // People Count
